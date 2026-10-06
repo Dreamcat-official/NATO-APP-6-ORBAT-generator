@@ -1,0 +1,1817 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>NATO 战术编制图 (ORBAT) 编辑器</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f8fafc;
+      --panel-bg: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --subtext: #64748b;
+      --stroke: #000000;
+      --active: #2563eb;
+      --hover: #f1f5f9;
+      --danger: #ef4444;
+    }
+    body.dark-mode {
+      --bg: #090d16;
+      --panel-bg: #131b2e;
+      --border: #232f48;
+      --text: #f8fafc;
+      --subtext: #94a3b8;
+      --stroke: #ffffff;
+      --active: #38bdf8;
+      --hover: #1e293b;
+      --danger: #f87171;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      font-size: 13px;
+    }
+
+    /* 顶栏导航 */
+    header {
+      height: 48px;
+      background: var(--panel-bg);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 12px;
+      flex-shrink: 0;
+      z-index: 30;
+    }
+    .header-title-box { display: flex; align-items: center; overflow: hidden; white-space: nowrap; }
+    .header-title { font-size: 14px; font-weight: 800; letter-spacing: 0.3px; }
+    .header-subtitle { font-size: 11px; color: var(--subtext); margin-left: 8px; font-weight: normal; }
+    .header-actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+
+    /* 通用按钮 */
+    button {
+      background: var(--panel-bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 5px 9px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: background 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    button:hover { background: var(--hover); border-color: var(--text); }
+    button.primary { background: var(--active); color: #ffffff; border-color: var(--active); }
+    button.primary:hover { opacity: 0.9; }
+    button.danger { color: var(--danger); border-color: var(--danger); }
+    button.danger:hover { background: rgba(239, 68, 68, 0.1); }
+    button.sm { padding: 3px 6px; font-size: 11px; }
+
+    /* 手机端专用分屏 Tab（电脑端隐藏） */
+    .mobile-tab-bar {
+      display: none;
+      height: 40px;
+      background: var(--panel-bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      z-index: 25;
+    }
+    .mobile-tab-btn {
+      flex: 1;
+      height: 100%;
+      border: none;
+      border-radius: 0;
+      background: transparent;
+      color: var(--subtext);
+      font-size: 12px;
+      font-weight: 700;
+      border-bottom: 2px solid transparent;
+      justify-content: center;
+    }
+    .mobile-tab-btn.active {
+      color: var(--active);
+      border-bottom-color: var(--active);
+      background: var(--hover);
+    }
+
+    /* 电脑端三栏布局容器 */
+    .app-workspace {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 48px);
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* 1. 左侧栏：编制大纲 */
+    .pane-outline {
+      width: 260px;
+      background: var(--panel-bg);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    .pane-header {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg);
+      flex-shrink: 0;
+    }
+    .spacing-controls {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel-bg);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .slider-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--subtext);
+      font-weight: 600;
+    }
+    .slider-row input[type="range"] {
+      width: 100px;
+      cursor: pointer;
+    }
+    .outline-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+    .tree-node-item {
+      padding: 6px 8px;
+      margin-bottom: 4px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .tree-node-item:hover { background: var(--hover); }
+    .tree-node-item.selected {
+      background: var(--hover);
+      border-color: var(--active);
+      font-weight: 700;
+    }
+    .col-group {
+      margin-top: 10px;
+      border: 1px dashed var(--border);
+      border-radius: 4px;
+      padding: 6px;
+    }
+    .col-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--subtext);
+      margin-bottom: 6px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* 2. 中间核心画布 */
+    .pane-canvas {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      position: relative;
+      overflow: hidden;
+      cursor: grab;
+      touch-action: none;
+    }
+    .pane-canvas:active { cursor: grabbing; }
+    .canvas-toolbar {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      gap: 4px;
+      background: var(--panel-bg);
+      padding: 4px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      z-index: 10;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+    .canvas-viewport {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    #orbat-svg {
+      transform-origin: 0 0;
+      position: absolute;
+      top: 0;
+      left: 0;
+      user-select: none;
+    }
+    .clickable-node { cursor: pointer; }
+
+    /* 3. 右侧属性检查器 */
+    .pane-inspector {
+      width: 280px;
+      background: var(--panel-bg);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow-y: auto;
+      z-index: 10;
+    }
+    .form-group {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .form-group label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--subtext);
+      margin-bottom: 5px;
+    }
+    .form-group input[type="text"],
+    .form-group select {
+      width: 100%;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 6px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      outline: none;
+    }
+    .form-group input[type="text"]:focus,
+    .form-group select:focus {
+      border-color: var(--active);
+    }
+
+    /* 战术矩阵全色板 (图 3 风格) */
+    .tactical-matrix-palette {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 3px;
+      background: #3e4438;
+      padding: 6px;
+      border-radius: 4px;
+      border: 1px solid #23271f;
+      margin-top: 6px;
+    }
+    .matrix-color-cell {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 2px;
+      border: 1px solid rgba(0,0,0,0.4);
+      cursor: pointer;
+      padding: 0;
+      transition: transform 0.1s, border-color 0.1s;
+    }
+    .matrix-color-cell:hover {
+      transform: scale(1.18);
+      border-color: #ffffff;
+      z-index: 2;
+    }
+
+    /* ==================== 手机端自适应分屏架构 (<= 900px) ==================== */
+    @media (max-width: 900px) {
+      .header-subtitle { display: none; }
+      .header-actions button span.btn-text { display: none; }
+      
+      .mobile-tab-bar {
+        display: flex;
+      }
+      .app-workspace {
+        flex-direction: column;
+        height: calc(100vh - 48px - 40px);
+      }
+      
+      /* 上半部分：占 48vh 独立触控画布 */
+      .pane-canvas {
+        order: 1;
+        height: 48vh;
+        flex: none;
+        width: 100%;
+        border-bottom: 1px solid var(--border);
+      }
+
+      /* 下半部分：Tab 联动展示大纲或检查器 */
+      .pane-outline {
+        order: 2;
+        width: 100% !important;
+        flex: 1;
+        border-right: none;
+      }
+      .pane-inspector {
+        order: 2;
+        width: 100% !important;
+        flex: 1;
+        border-left: none;
+      }
+
+      /* 手机端 Tab 切换隐藏控制 */
+      body.mobile-tab-outline .pane-inspector { display: none !important; }
+      body.mobile-tab-outline .pane-outline { display: flex !important; }
+
+      body.mobile-tab-inspector .pane-outline { display: none !important; }
+      body.mobile-tab-inspector .pane-inspector { display: flex !important; }
+    }
+  </style>
+</head>
+<body class="mobile-tab-outline">
+
+  <!-- 顶栏 -->
+  <header>
+    <div class="header-title-box">
+      <span class="header-title">NATO 编制图编辑器</span>
+      <span class="header-subtitle">APP-6 矢量标准 / 通用合成旅规范</span>
+    </div>
+    <div class="header-actions">
+      <button class="danger" onclick="clearAllOrbat()" title="清空全部编制">🗑️<span class="btn-text"> 清空</span></button>
+      <button onclick="resetToStandardBrigade()" title="重置为默认编制">🔄<span class="btn-text"> 重置</span></button>
+      <button onclick="toggleDarkMode()" title="浅色/深色切换">🌓<span class="btn-text"> 昼夜</span></button>
+      <button class="primary" onclick="exportSVG()" title="导出矢量 SVG">SVG</button>
+      <button onclick="exportPNG()" title="导出超清 PNG">2xPNG</button>
+    </div>
+  </header>
+
+  <!-- 移动端分屏切换 Tab -->
+  <nav class="mobile-tab-bar">
+    <button class="mobile-tab-btn active" id="btn-tab-outline" onclick="switchMobileTab('outline')">📋 编制拓扑大纲</button>
+    <button class="mobile-tab-btn" id="btn-tab-inspector" onclick="switchMobileTab('inspector')">⚙️ 属性检查器</button>
+  </nav>
+
+  <!-- 工作区 -->
+  <div class="app-workspace">
+
+    <!-- 1. 编制大纲 -->
+    <aside class="pane-outline">
+      <div class="pane-header">
+        <span>编制拓扑结构</span>
+        <button class="sm primary" onclick="addNewColumn()">➕ 横向加列</button>
+      </div>
+      <div class="spacing-controls">
+        <div class="slider-row">
+          <span>列间距: <strong id="label-col-gap">54px</strong></span>
+          <input type="range" id="slider-col-gap" min="20" max="140" value="54" oninput="onColGapChange(this.value)">
+        </div>
+        <div class="slider-row">
+          <span>行间距: <strong id="label-row-gap">32px</strong></span>
+          <input type="range" id="slider-row-gap" min="16" max="70" value="32" oninput="onRowGapChange(this.value)">
+        </div>
+      </div>
+      <div class="outline-content" id="outline-tree"></div>
+    </aside>
+
+    <!-- 2. 中间核心画布 (手机端上半屏) -->
+    <main class="pane-canvas" id="canvas-container">
+      <div class="canvas-toolbar">
+        <button class="sm" onclick="zoomCanvas(0.15)">➕</button>
+        <button class="sm" onclick="zoomCanvas(-0.15)">➖</button>
+        <button class="sm" onclick="fitToScreen()">🎯 适应</button>
+        <button class="sm" onclick="resetZoom()">100%</button>
+      </div>
+      <div class="canvas-viewport" id="viewport">
+        <svg id="orbat-svg"></svg>
+      </div>
+    </main>
+
+    <!-- 3. 属性检查器 (手机端点击兵牌自动切入) -->
+    <aside class="pane-inspector">
+      <div class="pane-header">
+        <span>节点属性编辑</span>
+        <div style="display: flex; gap: 4px; align-items: center;">
+          <span id="selected-type-badge" style="font-size: 10px; color: var(--subtext);">未选择</span>
+          <button class="sm" onclick="switchMobileTab('outline')">← 大纲</button>
+        </div>
+      </div>
+
+      <div id="inspector-fields" style="display: none;">
+        <div class="form-group">
+          <label>单位全称 (Title)</label>
+          <input type="text" id="node-title" oninput="updateCurrentNode('title', this.value)">
+        </div>
+        <div class="form-group">
+          <label>装备型号/编制描述 (Desc)</label>
+          <input type="text" id="node-desc" oninput="updateCurrentNode('desc', this.value)">
+        </div>
+        <div class="form-group" id="col-layout-box" style="display: none;">
+          <label>当前列排版形态 (Column Layout)</label>
+          <div style="display: flex; gap: 6px;">
+            <button class="sm" id="btn-layout-commander" style="flex: 1;" onclick="setColType('commander')">主官领队型 (图2)</button>
+            <button class="sm" id="btn-layout-direct" style="flex: 1;" onclick="setColType('direct')">直属顺下列 (图3)</button>
+          </div>
+        </div>
+        <div class="form-group" id="side-select-box" style="display: none;">
+          <label>旅总部侧挂方位 (Side)</label>
+          <select id="node-side" onchange="updateCurrentNode('side', this.value)">
+            <option value="right">右侧挂 (Right)</option>
+            <option value="left">左侧挂 (Left)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>兵种大类 (Level 1)</label>
+          <select id="node-cat" onchange="onCategoryChange()">
+            <option value="hq">指挥与总部 (Headquarters)</option>
+            <option value="joint">合成/联合力量 (Joint & Combined)</option>
+            <option value="infantry">步兵 (Infantry)</option>
+            <option value="armor">装甲 / 骑兵 (Armour)</option>
+            <option value="artillery">炮兵 (Artillery)</option>
+            <option value="antitank">反坦克 (Anti-Tank)</option>
+            <option value="airdefense">防空与导弹 (Air Defence & Missiles)</option>
+            <option value="engineer">军事工程兵 (Engineers)</option>
+            <option value="aviation">空中力量 (Air Organizations)</option>
+            <option value="support">战斗支援 (Other Support)</option>
+            <option value="sustainment">后勤勤务 (Sustainment)</option>
+            <option value="sof">特种作战 (SOF)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>具体兵种 (Level 2)</label>
+          <select id="node-branch" onchange="updateCurrentNode('branch', this.value)"></select>
+        </div>
+
+        <!-- 战术全色矩阵 -->
+        <div class="form-group">
+          <label>底色自定义 (Color Fill)</label>
+          <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px;">
+            <input type="color" id="node-color" style="width: 38px; height: 28px; padding: 1px; border: 1px solid var(--border);" oninput="updateCurrentNode('color', this.value)">
+            <input type="text" id="node-color-text" style="flex: 1;" oninput="updateCurrentNode('color', this.value)">
+          </div>
+          <div class="tactical-matrix-palette" id="tactical-palette-grid"></div>
+        </div>
+
+        <div class="form-group">
+          <label>梯队层级 (Echelon)</label>
+          <select id="node-echelon" onchange="updateCurrentNode('echelon', this.value)">
+            <option value="">无 (None)</option>
+            <option value="·">班 (·)</option>
+            <option value="···">排 (···)</option>
+            <option value="I">连 (I)</option>
+            <option value="II">营 (II)</option>
+            <option value="III">团 (III)</option>
+            <option value="X">旅 (X)</option>
+            <option value="XX">师 (XX)</option>
+            <option value="XXXX">集团军 (XXXX)</option>
+            <option value="XXXXXX">战区 (XXXXXX)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>机动交通方式 (Mobility)</label>
+          <select id="node-mobility" onchange="updateCurrentNode('mobility', this.value)">
+            <option value="none">默认 / 徒步 (None)</option>
+            <option value="motorized">摩托化 (贯穿竖线)</option>
+            <option value="towed">牵引式 (底置轮轴 o----o)</option>
+            <option value="tracked">履带机械化 (胶囊圈)</option>
+            <option value="wheeled">轮式机动 (内嵌三圆)</option>
+            <option value="armour-wheeled">装甲轮式 (胶囊圈+下三圆)</option>
+            <option value="airborne">伞降空降 (双凸弧鸥翼)</option>
+            <option value="airmobile">空中突击 (小飞翼)</option>
+            <option value="amphibious">两栖突击 (对称密波浪)</option>
+            <option value="arctic">极地机动 (双卷端雪橇)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>特质角标 (Badge)</label>
+          <select id="node-badge" onchange="updateCurrentNode('badge', this.value)">
+            <option value="none">无 (None)</option>
+            <option value="cbt">战斗 (CBT)</option>
+            <option value="lo">联络 (LO)</option>
+            <option value="sof">特战 (SOF)</option>
+            <option value="spt">支援 (SPT)</option>
+            <option value="light">轻型 (L)</option>
+            <option value="heavy">重型 (H)</option>
+            <option value="suw">岸舰海战 (SUW)</option>
+            <option value="ta">目标指示 (TA)</option>
+            <option value="fa">战斗轰炸 (F/A)</option>
+            <option value="cargo">运输 (C)</option>
+            <option value="patrol">巡逻 (P)</option>
+            <option value="attack">武装攻击 (A)</option>
+            <option value="utility">通用勤务 (U)</option>
+            <option value="recon">空中侦察 (R)</option>
+            <option value="aslt">空突机降 (ASLT)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>叠牌堆叠 (Stacks)</label>
+          <select id="node-stacks" onchange="updateCurrentNode('stacks', parseInt(this.value)||1)">
+            <option value="1">1 (单牌)</option>
+            <option value="2">2 (双层堆叠)</option>
+            <option value="3">3 (三层堆叠)</option>
+            <option value="4">4 (四层堆叠)</option>
+            <option value="5">5 (五层堆叠)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="node-taskforce" onchange="updateCurrentNode('taskForce', this.checked)">
+            <span>任务支队 (倒 冂 框)</span>
+          </label>
+        </div>
+        <div class="form-group" id="node-actions-box"></div>
+      </div>
+      <div id="inspector-placeholder" style="padding: 24px; text-align: center; color: var(--subtext);">
+        请在大纲或中央画布中点击选中单位进行编辑
+      </div>
+    </aside>
+
+  </div>
+
+  <script>
+    let isDark = false;
+    let colGap = 54;
+    let rowGap = 32;
+
+    let panX = 40, panY = 40, zoomScale = 1.0;
+    let isPanning = false, startMouseX = 0, startMouseY = 0;
+
+    // 50 色实战战术色盘矩阵
+    const TACTICAL_MATRIX_COLORS = [
+      "#1a3a6b", "#2c4d82", "#3b6bb3", "#4d84d6", "#5B8FF9", "#80B3FF", "#a3c8ff", "#0ea5e9", "#38bdf8", "#99D9EA",
+      "#14532d", "#15803d", "#16a34a", "#22c55e", "#4ade80", "#538242", "#65a30d", "#84cc16", "#a3e635", "#bef264",
+      "#78350f", "#92400e", "#b45309", "#d97706", "#f59e0b", "#fbbf24", "#fcd34d", "#E5B02B", "#fde047", "#fef08a",
+      "#7f1d1d", "#991b1b", "#b91c1c", "#dc2626", "#ef4444", "#E52B2B", "#D66F11", "#ea580c", "#f97316", "#fb923c",
+      "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f8fafc", "#FFFFFF"
+    ];
+
+    // 100% 完整继承的二级兵种映射表（严禁修改或删减）
+    const BRANCH_HIERARCHY = {
+      hq: [
+        { id: "hq", name: "通用指挥所/旅营总部 (Headquarters - 单顶横线)" },
+        { id: "hq-service", name: "指挥与勤务部 (HQ & Service - 双横线)" },
+        { id: "hq-text", name: "司令部 (正中大字 HQ)" },
+        { id: "hq-staff", name: "战术旗杆指挥所 (纯左下旗杆)" },
+        { id: "hq-infantry", name: "步兵指挥所 (Infantry HQ - 单横线+旗杆)" },
+        { id: "hq-armor", name: "装甲指挥所 (Armour HQ - 胶囊圈+单横线)" },
+        { id: "hq-artillery", name: "炮兵指挥所 (Artillery HQ - 实心圆+单横线)" }
+      ],
+      joint: [
+        { id: "unspecified-combined", name: "非特定/综合合成力量 (Combined Arms)" },
+        { id: "jtf", name: "联合特遣部队 (JTF)" },
+        { id: "mtf", name: "海上特遣部队 (MTF)" },
+        { id: "ltf", name: "陆上特遣部队 (LTF)" },
+        { id: "atf", name: "空中特遣部队 (ATF)" },
+        { id: "combined-mech", name: "合成机械化部队 (内接四角 X)" },
+        { id: "combined-airborne", name: "合成空降力量 (居中独立鸥翼)" },
+        { id: "air-assault-force", name: "空中突击力量 (下凹无底倒三角)" },
+        { id: "magtf", name: "海空陆战特遣队 (MAGTF: 哑铃旋翼+落地波浪)" },
+        { id: "carrier-tf", name: "航母打击群 (左舰桥+内折角)" },
+        { id: "amphib-tf", name: "两栖特遣群 (内折角+粗箭头+右横线)" }
+      ],
+      infantry: [
+        { id: "infantry", name: "基础步兵 (Infantry - X)" }
+      ],
+      armor: [
+        { id: "armor", name: "主战坦克 (Armour)" },
+        { id: "recon", name: "装甲/轻骑侦察 (Recon - 斜杠)" }
+      ],
+      artillery: [
+        { id: "artillery", name: "身管火炮 (Artillery - 实心圆)" },
+        { id: "artillery-fo", name: "炮兵前沿观测 (FO - 斜杠贯穿圆)" },
+        { id: "rocket", name: "多管火箭炮 (Rocket - 顶棚双折线)" },
+        { id: "mortar", name: "迫击炮 (Mortars - 底圈上升箭)" },
+        { id: "artillery-ta-uav", name: "目标指示 (TA Radar & UAV)" }
+      ],
+      antitank: [
+        { id: "antitank", name: "纯正反坦克 (Anti-Tank - 顶角大倒V)" },
+        { id: "antitank-missile", name: "反坦克导弹 (ATGM - 倒V内立尖导弹)" }
+      ],
+      airdefense: [
+        { id: "air-defense", name: "野战防空 (Air Defence - 低平扁弧)" },
+        { id: "air-defense-missile", name: "防空导弹 (AD Missile - 弧内立尖导弹)" },
+        { id: "ss-missile", name: "地对地导弹 (Surface-to-Surface - 立尖导弹)" },
+        { id: "coastal-missile", name: "岸舰反舰导弹 (Coastal - SUW+尖导弹)" },
+        { id: "tacp", name: "战术空管组 (TACP)" }
+      ],
+      engineer: [
+        { id: "engineer", name: "基础工兵 (三柱桥悬空距底6px)" },
+        { id: "engineer-armoured", name: "装甲工兵 (胶囊圈套正中三柱桥)" },
+        { id: "engineer-wheeled", name: "轮式工兵 (正中三柱桥 + 桥下三圆)" },
+        { id: "engineer-armour-wheeled", name: "装甲轮式工兵 (胶囊圈+桥+三圆)" },
+        { id: "engineer-cbt", name: "战斗工兵 (三柱桥 + 顶部 CBT)" },
+        { id: "engineer-cbt-tracked", name: "战斗工兵-履带式 (CBT+桥底小履带)" },
+        { id: "engineer-cbt-wheeled", name: "战斗工兵-轮式 (CBT+桥底小三圆)" },
+        { id: "engineer-spt", name: "工兵支援 (三柱桥 + SPT)" },
+        { id: "engineer-eod", name: "防爆排爆 (三柱桥 + EOD)" }
+      ],
+      aviation: [
+        { id: "air-force", name: "综合航空/空军 (四叶梅花标)" },
+        { id: "fixed-wing", name: "固定翼飞机 (双三角接双半圆)" },
+        { id: "fighter", name: "战斗/攻击机 (F/A + 固定翼)" },
+        { id: "cargo", name: "运输机 (C + 固定翼)" },
+        { id: "patrol", name: "远程巡逻机 (P/LR + 固定翼)" },
+        { id: "helicopters", name: "直升机 (直边对顶三角旋翼)" },
+        { id: "attack-helo", name: "武装攻击直升机 (A + 旋翼)" },
+        { id: "utility-helo", name: "通用勤务直升机 (U + 旋翼)" },
+        { id: "recon-helo", name: "侦察直升机 (R + 旋翼)" },
+        { id: "aslt-helo", name: "空突机降直升机 (ASLT + 旋翼)" },
+        { id: "uav", name: "无人机 (UAV - 专用后掠大三角掠翼)" }
+      ],
+      support: [
+        { id: "cs", name: "战斗支援 (CS)" },
+        { id: "cbrn", name: "防化核生化 (CBRN - 双烧瓶带法兰)" },
+        { id: "mi", name: "军事情报 (MI)" },
+        { id: "cis", name: "通信系统 (CIS - 垂直反折线闪电)" },
+        { id: "ew", name: "电子战 (EW)" },
+        { id: "air-comm", name: "对空通信 (垂直折线+正上方旋翼)" },
+        { id: "comm-repair", name: "通信维修 (垂直折线+正上方扳手)" },
+        { id: "cybr", name: "网络空间战 (CYBR)" },
+        { id: "mp", name: "宪兵 (Military Police - MP)" },
+        { id: "sec", name: "安全部队 (Security - SEC)" },
+        { id: "rgr", name: "游骑兵 (Rangers - RGR+雪橇)" }
+      ],
+      sustainment: [
+        { id: "sustainment", name: "勤务总标 (Sustainment - 燕尾口)" },
+        { id: "supply", name: "补给 (Supply - 底部横线)" },
+        { id: "transportation", name: "交通运输 (Transportation - 辐条轮)" },
+        { id: "supply-transport", name: "运输与补给 (轮+底线)" },
+        { id: "ammunition", name: "弹药 (Ammunition - 平底弹头)" },
+        { id: "pol", name: "油料润滑油 (POL - 漏斗烧瓶 Y)" },
+        { id: "ordnance", name: "军械军需 (Ordnance - 辐射火药环)" },
+        { id: "food", name: "野战给养 (Food - 开口扇形饼图)" },
+        { id: "maintenance", name: "装备维修 (正规双头开口扳手 )-( )" },
+        { id: "aircraft-maint", name: "航空器维修 (扳手+下置四叶梅花)" },
+        { id: "medical", name: "卫勤医疗 (Medical - 四象限十字)" }
+      ],
+      sof: [
+        { id: "sof-hq", name: "特战司令部 (SOF)" },
+        { id: "sof-infantry", name: "特战步兵 (SOF Infantry)" },
+        { id: "sof-recon", name: "特战侦察 (SOF Recon)" },
+        { id: "sof-aviation", name: "特战陆航 (SOF + 四叶梅花标)" },
+        { id: "sof-boats", name: "特战舟艇 (SOF Boats)" },
+        { id: "sof-divers", name: "特战潜水 (SOF Divers)" },
+        { id: "sof-engineer", name: "特战工兵 (SOF Engineers)" },
+        { id: "sof-snipers", name: "特战狙击 (SOF Snipers)" }
+      ]
+    };
+
+    // 100% 完整保留的几何标定渲染器（纯黑 #000000 / 纯白 #FFFFFF 切换）
+    const W = 72, H = 44, strokeW = 2.4;
+    const ox = 10, oy = 24, cx = 46, cy = 46;
+
+    function renderNATOUnit({
+      color = "#5B8FF9",
+      branch = "infantry",
+      mobility = "none",
+      modifier = "none",
+      badge = "none",
+      echelon = "I",
+      taskForce = false,
+      stacks = 1,
+      title = "",
+      desc = ""
+    }) {
+      const mob = (mobility !== "none") ? mobility : modifier;
+
+      let fill = color;
+      if (isDark && (fill.toLowerCase() === "#ffffff" || fill.toLowerCase() === "#fff")) {
+        fill = "#161D2F";
+      }
+
+      const stroke = isDark ? "#FFFFFF" : "#000000";
+      const textMain = isDark ? "#FFFFFF" : "#000000";
+      const textSub = isDark ? "#94a3b8" : "#64748b";
+
+      let rects = "";
+      for (let i = stacks - 1; i >= 0; i--) {
+        rects += `<rect x="${ox + i * 5}" y="${oy + i * 5}" width="${W}" height="${H}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}" />`;
+      }
+
+      const hasStaff = branch === "hq-staff" || branch === "hq-infantry";
+      let hqStaff = hasStaff 
+        ? `<line x1="${ox}" y1="${oy + H}" x2="${ox}" y2="${oy + H + 20}" stroke="${stroke}" stroke-width="${strokeW * 1.3}" />` 
+        : "";
+
+      let tracked = "";
+      if (mob === "tracked" || mob === "armour-wheeled" || branch === "armor" || branch === "engineer-armoured" || branch === "engineer-armour-wheeled" || branch === "combined-mech" || branch === "hq-armor") {
+        const ow = 48, oh = 24;
+        const oY = (mob === "wheeled" || mob === "armour-wheeled" || branch === "engineer-armour-wheeled") ? (cy - 4) : cy;
+        tracked = `<rect x="${cx - ow/2}" y="${oY - oh/2}" width="${ow}" height="${oh}" rx="${oh/2}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" />`;
+      }
+
+      const sharpMissile = (topY = 30) => `
+        <path d="M ${cx - 4},${oy + H} V ${topY + 7} Q ${cx - 4},${topY} ${cx},${topY} Q ${cx + 4},${topY} ${cx + 4},${topY + 7} V ${oy + H} M ${cx},${topY} V ${oy + H}" fill="${fill}" stroke="${stroke}" stroke-width="1.8" />
+      `;
+
+      let base = "";
+
+      if (branch === "hq" || branch === "hq-infantry" || branch === "hq-armor" || branch === "hq-artillery") {
+        base = `<line x1="${ox}" y1="${oy + 12}" x2="${ox + W}" y2="${oy + 12}" stroke="${stroke}" stroke-width="${strokeW}" />`;
+        if (branch === "hq-infantry") {
+          base += `<line x1="${ox}" y1="${oy + 12}" x2="${ox + W}" y2="${oy + H}" stroke="${stroke}" stroke-width="${strokeW}" />
+                   <line x1="${ox}" y1="${oy + H}" x2="${ox + W}" y2="${oy + 12}" stroke="${stroke}" stroke-width="${strokeW}" />`;
+        } else if (branch === "hq-artillery") {
+          base += `<circle cx="${cx}" cy="${cy + 4}" r="5.5" fill="${stroke}" />`;
+        }
+      } else if (branch === "hq-service") {
+        base = `<line x1="${ox}" y1="${oy + 12}" x2="${ox + W}" y2="${oy + 12}" stroke="${stroke}" stroke-width="${strokeW}" />
+                <line x1="${ox}" y1="${oy + H - 12}" x2="${ox + W}" y2="${oy + H - 12}" stroke="${stroke}" stroke-width="${strokeW}" />`;
+      } else if (branch === "hq-text") {
+        base = `<text x="${cx}" y="${cy + 6}" font-size="18" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">HQ</text>`;
+      } else if (branch === "hq-staff") {
+        base = "";
+      }
+      else if (branch === "unspecified-combined") {
+        base = "";
+      } else if (branch === "jtf") {
+        base = `<text x="${cx}" y="${cy + 5}" font-size="16" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">JTF</text>`;
+      } else if (branch === "mtf") {
+        base = `<text x="${cx}" y="${cy + 5}" font-size="16" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">MTF</text>`;
+      } else if (branch === "ltf") {
+        base = `<text x="${cx}" y="${cy + 5}" font-size="16" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">LTF</text>`;
+      } else if (branch === "atf") {
+        base = `<text x="${cx}" y="${cy + 5}" font-size="16" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">ATF</text>`;
+      } else if (branch === "combined-mech") {
+        base = `<line x1="26" y1="36" x2="66" y2="56" stroke="${stroke}" stroke-width="${strokeW}" />
+                <line x1="26" y1="56" x2="66" y2="36" stroke="${stroke}" stroke-width="${strokeW}" />`;
+      } else if (branch === "combined-airborne") {
+        base = `<path d="M ${cx - 18},${cy + 4} Q ${cx - 9},${cy - 6} ${cx},${cy + 1} Q ${cx + 9},${cy - 6} ${cx + 18},${cy + 4}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linecap="round" />`;
+      } else if (branch === "air-assault-force") {
+        base = `<line x1="${ox}" y1="${oy}" x2="${ox + W}" y2="${oy + H}" stroke="${stroke}" stroke-width="${strokeW}" />
+                <line x1="${ox}" y1="${oy + H}" x2="${ox + W}" y2="${oy}" stroke="${stroke}" stroke-width="${strokeW}" />
+                <path d="M ${ox},56 H ${cx - 7} L ${cx},64 L ${cx + 7},56 H ${ox + W}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linejoin="miter" />`;
+      } else if (branch === "magtf") {
+        base = `<line x1="${ox}" y1="${oy}" x2="${ox + W}" y2="${oy + H}" stroke="${stroke}" stroke-width="${strokeW}" />
+                <line x1="${ox}" y1="${oy + H}" x2="${ox + W}" y2="${oy}" stroke="${stroke}" stroke-width="${strokeW}" />
+                <path d="M ${cx},43 L 38,39 A 4.5,4.5 0 0,0 38,47 Z" fill="${stroke}" />
+                <path d="M ${cx},43 L 54,39 A 4.5,4.5 0 0,1 54,47 Z" fill="${stroke}" />
+                <path d="M ${ox},66 Q 16,59 22,68 Q 28,59 34,68 Q 40,59 46,68 Q 52,59 58,68 Q 64,59 70,68 Q 76,59 ${ox + W},66" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" />`;
+      } else if (branch === "carrier-tf") {
+        base = `<path d="M 28,62 V 46 L 35,36" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linecap="round" />
+                <path d="M 64,62 V 46 L 57,36" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linecap="round" />
+                <polygon points="39,39 53,39 46,54" fill="${stroke}" />
+                <rect x="40" y="33" width="4" height="6" fill="${stroke}" />`;
+      } else if (branch === "amphib-tf") {
+        base = `<path d="M 28,62 V 46 L 35,36" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linecap="round" />
+                <path d="M 64,62 V 46 L 57,36" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linecap="round" />
+                <polygon points="43,36 49,36 49,46 54,46 46,55 38,46 43,46" fill="${stroke}" />
+                <line x1="46" y1="57" x2="60" y2="57" stroke="${stroke}" stroke-width="${strokeW}" stroke-linecap="square" />`;
+      }
+      else if (branch === "infantry") {
+        base = `<line x1="${ox}" y1="${oy}" x2="${ox + W}" y2="${oy + H}" stroke="${stroke}" stroke-width="${strokeW}" />
+                <line x1="${ox}" y1="${oy + H}" x2="${ox + W}" y2="${oy}" stroke="${stroke}" stroke-width="${strokeW}" />`;
+      } else if (branch === "recon") {
+        base = `<line x1="${ox}" y1="${oy + H}" x2="${ox + W}" y2="${oy}" stroke="${stroke}" stroke-width="${strokeW}" />`;
+      } else if (branch === "artillery") {
+        base = `<circle cx="${cx}" cy="${cy}" r="6" fill="${stroke}" />`;
+      } else if (branch === "artillery-fo") {
+        base = `<line x1="${ox}" y1="${oy + H}" x2="${ox + W}" y2="${oy}" stroke="${stroke}" stroke-width="${strokeW}" />
+                <circle cx="${cx}" cy="${cy}" r="6" fill="${stroke}" />`;
+      } else if (branch === "artillery-ta-uav") {
+        base = `<circle cx="${cx}" cy="${cy}" r="5.5" fill="${stroke}" />
+                <polygon points="32,49 46,55 60,49 46,62" fill="${stroke}" />
+                <path d="M 27,33 Q 30,41 37,43" fill="none" stroke="${stroke}" stroke-width="1.8" stroke-linecap="round" />
+                <polyline points="29,40 33,35 32,38 36,34" fill="none" stroke="${stroke}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="miter" />`;
+      } else if (branch === "rocket") {
+        base = `<circle cx="${cx}" cy="${cy + 5}" r="5.5" fill="${stroke}" />
+                <polyline points="${cx - 8},${cy - 2} ${cx},${cy - 8} ${cx + 8},${cy - 2}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linejoin="miter" stroke-linecap="round" />
+                <polyline points="${cx - 8},${cy - 8} ${cx},${cy - 14} ${cx + 8},${cy - 8}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linejoin="miter" stroke-linecap="round" />`;
+      } else if (branch === "mortar") {
+        base = `<circle cx="${cx}" cy="${cy + 6}" r="4" fill="none" stroke="${stroke}" stroke-width="${strokeW}" />
+                <line x1="${cx}" y1="${cy + 2}" x2="${cx}" y2="${oy + 8}" stroke="${stroke}" stroke-width="${strokeW}" />
+                <polyline points="${cx - 4},${oy + 14} ${cx},${oy + 8} ${cx + 4},${oy + 14}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linecap="round" />`;
+      } else if (branch === "antitank") {
+        base = `<polyline points="${ox},${oy + H} ${cx},${oy} ${ox + W},${oy + H}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linejoin="miter" />`;
+      } else if (branch === "antitank-missile") {
+        base = `<polyline points="${ox},${oy + H} ${cx},${oy} ${ox + W},${oy + H}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linejoin="miter" />
+                ${sharpMissile(31)}`;
+      } else if (branch === "air-defense") {
+        base = `<path d="M ${ox},${oy + H} Q ${cx},${oy + H - 24} ${ox + W},${oy + H}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" />`;
+      } else if (branch === "air-defense-missile") {
+        base = `<path d="M ${ox},${oy + H} Q ${cx},${oy + H - 24} ${ox + W},${oy + H}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" />
+                ${sharpMissile(30)}`;
+      } else if (branch === "ss-missile") {
+        base = sharpMissile(30);
+      } else if (branch === "coastal-missile") {
+        base = `<text x="${cx}" y="${oy + 9}" font-size="9" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">SUW</text>
+                ${sharpMissile(34)}`;
+      } else if (branch === "tacp") {
+        base = `<text x="${cx}" y="${cy + 4}" font-size="13" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">TACP</text>`;
+      }
+      else if (branch === "engineer") {
+        base = `<path d="M ${ox + 16},${oy + H - 6} V ${cy + 2} H ${ox + W - 16} V ${oy + H - 6} M ${cx},${cy + 2} V ${oy + H - 6}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linecap="square" />`;
+      } else if (branch === "engineer-armoured") {
+        base = `<path d="M 32,53 V 41 H 60 V 53 M 46,41 V 53" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linecap="square" />`;
+      } else if (branch === "engineer-wheeled") {
+        base = `<path d="M ${ox + 16},${oy + H - 12} V ${cy} H ${ox + W - 16} V ${oy + H - 12} M ${cx},${cy} V ${oy + H - 12}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linecap="square" />
+                <circle cx="${cx - 14}" cy="${oy + H - 6}" r="3" fill="none" stroke="${stroke}" stroke-width="2" />
+                <circle cx="${cx}" cy="${oy + H - 6}" r="3" fill="none" stroke="${stroke}" stroke-width="2" />
+                <circle cx="${cx + 14}" cy="${oy + H - 6}" r="3" fill="none" stroke="${stroke}" stroke-width="2" />`;
+      } else if (branch === "engineer-armour-wheeled") {
+        base = `<path d="M 32,50 V 38 H 60 V 50 M 46,38 V 50" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linecap="square" />
+                <circle cx="${cx - 14}" cy="${oy + H - 6}" r="3" fill="none" stroke="${stroke}" stroke-width="2" />
+                <circle cx="${cx}" cy="${oy + H - 6}" r="3" fill="none" stroke="${stroke}" stroke-width="2" />
+                <circle cx="${cx + 14}" cy="${oy + H - 6}" r="3" fill="none" stroke="${stroke}" stroke-width="2" />`;
+      } else if (branch === "engineer-cbt") {
+        base = `<text x="${cx}" y="${oy + 13}" font-size="11" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">CBT</text>
+                <path d="M ${ox + 16},${oy + H - 6} V ${cy + 4} H ${ox + W - 16} V ${oy + H - 6} M ${cx},${cy + 4} V ${oy + H - 6}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linecap="square" />`;
+      } else if (branch === "engineer-cbt-tracked") {
+        base = `<text x="${cx}" y="${oy + 13}" font-size="11" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">CBT</text>
+                <path d="M ${ox + 16},${oy + H - 10} V ${cy + 3} H ${ox + W - 16} V ${oy + H - 10} M ${cx},${cy + 3} V ${oy + H - 10}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linecap="square" />
+                <rect x="${cx - 12}" y="${oy + H - 8}" width="24" height="6.5" rx="3.2" fill="none" stroke="${stroke}" stroke-width="1.8" />`;
+      } else if (branch === "engineer-cbt-wheeled") {
+        base = `<text x="${cx}" y="${oy + 13}" font-size="11" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">CBT</text>
+                <path d="M ${ox + 16},${oy + H - 10} V ${cy + 3} H ${ox + W - 16} V ${oy + H - 10} M ${cx},${cy + 3} V ${oy + H - 10}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linecap="square" />
+                <circle cx="${cx - 10}" cy="${oy + H - 5}" r="2.6" fill="none" stroke="${stroke}" stroke-width="1.6" />
+                <circle cx="${cx}" cy="${oy + H - 5}" r="2.6" fill="none" stroke="${stroke}" stroke-width="1.6" />
+                <circle cx="${cx + 10}" cy="${oy + H - 5}" r="2.6" fill="none" stroke="${stroke}" stroke-width="1.6" />`;
+      } else if (branch === "engineer-spt") {
+        base = `<text x="${cx}" y="${oy + 13}" font-size="11" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">SPT</text>
+                <path d="M ${ox + 16},${oy + H - 6} V ${cy + 4} H ${ox + W - 16} V ${oy + H - 6} M ${cx},${cy + 4} V ${oy + H - 6}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linecap="square" />`;
+      } else if (branch === "engineer-eod") {
+        base = `<text x="${cx}" y="${oy + 13}" font-size="10" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">EOD</text>
+                <path d="M ${ox + 16},${oy + H - 6} V ${cy + 4} H ${ox + W - 16} V ${oy + H - 6} M ${cx},${cy + 4} V ${oy + H - 6}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linecap="square" />`;
+      }
+      else if (branch === "air-force") {
+        base = `<circle cx="${cx}" cy="${cy - 5.5}" r="3.2" fill="${stroke}" />
+                <circle cx="${cx}" cy="${cy + 5.5}" r="3.2" fill="${stroke}" />
+                <circle cx="${cx - 5.5}" cy="${cy}" r="3.2" fill="${stroke}" />
+                <circle cx="${cx + 5.5}" cy="${cy}" r="3.2" fill="${stroke}" />
+                <circle cx="${cx}" cy="${cy}" r="2.2" fill="${stroke}" />`;
+      } else if (branch === "fixed-wing" || branch === "fighter" || branch === "cargo" || branch === "patrol") {
+        let txt = "";
+        if (branch === "fighter") txt = `<text x="${cx}" y="${oy + 12}" font-size="10" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">F/A</text>`;
+        if (branch === "cargo") txt = `<text x="${cx}" y="${oy + 12}" font-size="10" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">C</text>`;
+        if (branch === "patrol") txt = `<text x="${cx}" y="${oy + 11}" font-size="10" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">P</text>
+                                        <text x="${cx}" y="${oy + H - 4}" font-size="8" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">LR</text>`;
+        base = `${txt}
+                <path d="M ${cx},${cy} L 36,40 A 6,6 0 0,0 36,52 Z" fill="${stroke}" />
+                <path d="M ${cx},${cy} L 56,40 A 6,6 0 0,1 56,52 Z" fill="${stroke}" />`;
+      } else if (branch === "helicopters" || branch === "attack-helo" || branch === "utility-helo" || branch === "recon-helo" || branch === "aslt-helo") {
+        let txt = "";
+        if (branch === "attack-helo") txt = `<text x="${cx}" y="${oy + 12}" font-size="11" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">A</text>`;
+        if (branch === "utility-helo") txt = `<text x="${cx}" y="${oy + 12}" font-size="11" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">U</text>`;
+        if (branch === "recon-helo") txt = `<text x="${cx}" y="${oy + 12}" font-size="11" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">R</text>`;
+        if (branch === "aslt-helo") txt = `<text x="${cx}" y="${oy + 12}" font-size="9" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">ASLT</text>`;
+        base = `${txt}
+                <polygon points="${cx - 15},${cy - 6} ${cx + 15},${cy + 6} ${cx + 15},${cy - 6} ${cx - 15},${cy + 6}" fill="${stroke}" />`;
+      } else if (branch === "uav") {
+        base = `<polygon points="30,40 46,47 62,40 46,55" fill="${stroke}" />`;
+      }
+      else if (branch === "cs") {
+        base = `<text x="${cx}" y="${cy + 4}" font-size="14" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">CS</text>`;
+      } else if (branch === "cbrn") {
+        base = `<line x1="${cx - 10}" y1="${cy - 7}" x2="${cx + 9}" y2="${cy + 9}" stroke="${stroke}" stroke-width="2" stroke-linecap="round" />
+                <line x1="${cx + 10}" y1="${cy - 7}" x2="${cx - 9}" y2="${cy + 9}" stroke="${stroke}" stroke-width="2" stroke-linecap="round" />
+                <circle cx="${cx - 10}" cy="${cy - 7}" r="4" fill="${stroke}" />
+                <circle cx="${cx + 10}" cy="${cy - 7}" r="4" fill="${stroke}" />
+                <line x1="${cx - 13}" y1="${cy - 9}" x2="${cx - 7}" y2="${cy - 5}" stroke="${stroke}" stroke-width="1.8" />
+                <line x1="${cx + 7}" y1="${cy - 5}" x2="${cx + 13}" y2="${cy - 9}" stroke="${stroke}" stroke-width="1.8" />`;
+      } else if (branch === "mi") {
+        base = `<text x="${cx}" y="${cy + 4}" font-size="14" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">MI</text>`;
+      } else if (branch === "cis") {
+        base = `<path d="M ${ox},${oy} L ${cx},${cy + 5} V ${cy - 5} L ${ox + W},${oy + H}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linejoin="miter" />`;
+      } else if (branch === "ew") {
+        base = `<text x="${cx}" y="${cy + 4}" font-size="14" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">EW</text>`;
+      } else if (branch === "air-comm") {
+        base = `<path d="M ${ox},${oy} L ${cx},${cy + 5} V ${cy - 5} L ${ox + W},${oy + H}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" />
+                <polygon points="${cx - 7},${oy + 6} ${cx + 7},${oy + 14} ${cx + 7},${oy + 6} ${cx - 7},${oy + 14}" fill="${stroke}" />`;
+      } else if (branch === "comm-repair") {
+        base = `<path d="M ${ox},${oy} L ${cx},${cy + 5} V ${cy - 5} L ${ox + W},${oy + H}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linejoin="miter" />
+                <path d="M ${cx - 8},${oy + 7.5} A 3,3 0 0,1 ${cx - 8},${oy + 13.5} M ${cx - 5},${oy + 10.5} H ${cx + 5} M ${cx + 8},${oy + 7.5} A 3,3 0 0,0 ${cx + 8},${oy + 13.5}" fill="none" stroke="${stroke}" stroke-width="1.8" stroke-linecap="round" />`;
+      } else if (branch === "cybr") {
+        base = `<text x="${cx}" y="${cy + 4}" font-size="12" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">CYBR</text>`;
+      } else if (branch === "mp") {
+        base = `<text x="${cx}" y="${cy + 4}" font-size="14" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">MP</text>`;
+      } else if (branch === "sec") {
+        base = `<text x="${cx}" y="${cy + 4}" font-size="13" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">SEC</text>`;
+      } else if (branch === "rgr") {
+        base = `<text x="${cx}" y="${cy - 2}" font-size="12" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">RGR</text>
+                <path d="M ${cx - 9},${cy + 6} C ${cx - 14},${cy + 6} ${cx - 14},${cy + 12} ${cx - 8},${cy + 12} L ${cx + 8},${cy + 12} C ${cx + 14},${cy + 12} ${cx + 14},${cy + 6} ${cx + 9},${cy + 6}" fill="none" stroke="${stroke}" stroke-width="1.8" stroke-linecap="round" />`;
+      }
+      else if (branch === "sustainment") {
+        base = `<polyline points="${ox + W},${oy} ${cx + 10},${cy} ${ox + W},${oy + H}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" />`;
+      } else if (branch === "supply") {
+        base = `<line x1="${ox}" y1="${oy + H - 10}" x2="${ox + W}" y2="${oy + H - 10}" stroke="${stroke}" stroke-width="${strokeW}" />`;
+      } else if (branch === "transportation") {
+        base = `<circle cx="${cx}" cy="${cy}" r="11" fill="none" stroke="${stroke}" stroke-width="${strokeW}" />
+                <line x1="${cx - 11}" y1="${cy}" x2="${cx + 11}" y2="${cy}" stroke="${stroke}" stroke-width="1.5" />
+                <line x1="${cx}" y1="${cy - 11}" x2="${cx}" y2="${cy + 11}" stroke="${stroke}" stroke-width="1.5" />
+                <line x1="${cx - 7.7}" y1="${cy - 7.7}" x2="${cx + 7.7}" y2="${cy + 7.7}" stroke="${stroke}" stroke-width="1.5" />
+                <line x1="${cx - 7.7}" y1="${cy + 7.7}" x2="${cx + 7.7}" y2="${cy - 7.7}" stroke="${stroke}" stroke-width="1.5" />`;
+      } else if (branch === "supply-transport") {
+        base = `<line x1="${ox}" y1="${oy + H - 10}" x2="${ox + W}" y2="${oy + H - 10}" stroke="${stroke}" stroke-width="${strokeW}" />
+                <circle cx="${cx}" cy="${cy - 2}" r="10" fill="none" stroke="${stroke}" stroke-width="${strokeW}" />
+                <line x1="${cx - 10}" y1="${cy - 2}" x2="${cx + 10}" y2="${cy - 2}" stroke="${stroke}" stroke-width="1.5" />
+                <line x1="${cx}" y1="${cy - 12}" x2="${cx}" y2="${cy + 8}" stroke="${stroke}" stroke-width="1.5" />
+                <line x1="${cx - 7}" y1="${cy - 9}" x2="${cx + 7}" y2="${cy + 5}" stroke="${stroke}" stroke-width="1.5" />
+                <line x1="${cx - 7}" y1="${cy + 5}" x2="${cx + 7}" y2="${cy - 9}" stroke="${stroke}" stroke-width="1.5" />`;
+      } else if (branch === "ammunition") {
+        base = `<path d="M ${cx - 7},${oy + H - 8} V ${cy} Q ${cx - 7},${cy - 14} ${cx},${cy - 16} Q ${cx + 7},${cy - 14} ${cx + 7},${cy} V ${oy + H - 8} Z" fill="none" stroke="${stroke}" stroke-width="${strokeW}" />
+                <line x1="${cx - 11}" y1="${oy + H - 8}" x2="${cx + 11}" y2="${oy + H - 8}" stroke="${stroke}" stroke-width="${strokeW}" />`;
+      } else if (branch === "pol") {
+        base = `<path d="M ${cx - 8},${oy + 12} H ${cx + 8} L ${cx + 1.5},${cy + 1} V ${oy + H - 10} H ${cx - 1.5} V ${cy + 1} Z" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linejoin="miter" />`;
+      } else if (branch === "ordnance") {
+        base = `<circle cx="${cx}" cy="${cy}" r="7.5" fill="none" stroke="${stroke}" stroke-width="${strokeW}" />
+                <line x1="${cx - 7.5}" y1="${cy - 7.5}" x2="${cx - 10.5}" y2="${cy - 10.5}" stroke="${stroke}" stroke-width="${strokeW}" stroke-linecap="round" />
+                <line x1="${cx + 7.5}" y1="${cy - 7.5}" x2="${cx + 10.5}" y2="${cy - 10.5}" stroke="${stroke}" stroke-width="${strokeW}" stroke-linecap="round" />
+                <line x1="${cx - 7.5}" y1="${cy + 7.5}" x2="${cx - 10.5}" y2="${cy + 10.5}" stroke="${stroke}" stroke-width="${strokeW}" stroke-linecap="round" />
+                <line x1="${cx + 7.5}" y1="${cy + 7.5}" x2="${cx + 10.5}" y2="${cy + 10.5}" stroke="${stroke}" stroke-width="${strokeW}" stroke-linecap="round" />`;
+      } else if (branch === "food") {
+        base = `<path d="M ${cx},${cy} L ${cx + 9},${cy - 5.5} A 11,11 0 1,0 ${cx + 9},${cy + 5.5} Z" fill="none" stroke="${stroke}" stroke-width="${strokeW}" />`;
+      } else if (branch === "maintenance") {
+        base = `<path d="M ${cx - 16},${cy - 5.5} A 5.5,5.5 0 0,1 ${cx - 16},${cy + 5.5} M ${cx - 10.5},${cy} H ${cx + 10.5} M ${cx + 16},${cy - 5.5} A 5.5,5.5 0 0,0 ${cx + 16},${cy + 5.5}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linecap="round" />`;
+      } else if (branch === "aircraft-maint") {
+        base = `<path d="M ${cx - 13},${cy - 11.5} A 4,4 0 0,1 ${cx - 13},${cy - 3.5} M ${cx - 9},${cy - 7.5} H ${cx + 9} M ${cx + 13},${cy - 11.5} A 4,4 0 0,0 ${cx + 13},${cy - 3.5}" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" />
+                <circle cx="${cx}" cy="${cy + 3.5}" r="2.8" fill="${stroke}" />
+                <circle cx="${cx}" cy="${cy + 12.5}" r="2.8" fill="${stroke}" />
+                <circle cx="${cx - 4.5}" cy="${cy + 8}" r="2.8" fill="${stroke}" />
+                <circle cx="${cx + 4.5}" cy="${cy + 8}" r="2.8" fill="${stroke}" />
+                <circle cx="${cx}" cy="${cy + 8}" r="2" fill="${stroke}" />`;
+      } else if (branch === "medical") {
+        base = `<line x1="${ox}" y1="${cy}" x2="${ox + W}" y2="${cy}" stroke="${stroke}" stroke-width="${strokeW}" />
+                <line x1="${cx}" y1="${oy}" x2="${cx}" y2="${oy + H}" stroke="${stroke}" stroke-width="${strokeW}" />`;
+      }
+      else if (branch === "sof-hq") {
+        base = `<text x="${cx}" y="${cy + 4}" font-size="14" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">SOF</text>`;
+      } else if (branch === "sof-infantry") {
+        base = `<line x1="${ox}" y1="${oy}" x2="${ox + W}" y2="${oy + H}" stroke="${stroke}" stroke-width="${strokeW}" />
+                <line x1="${ox}" y1="${oy + H}" x2="${ox + W}" y2="${oy}" stroke="${stroke}" stroke-width="${strokeW}" />
+                <text x="${cx}" y="${oy + 13}" font-size="11" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">SOF</text>`;
+      } else if (branch === "sof-recon") {
+        base = `<line x1="${ox}" y1="${oy + H}" x2="${ox + W}" y2="${oy}" stroke="${stroke}" stroke-width="${strokeW}" />
+                <text x="${cx}" y="${oy + 13}" font-size="11" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">SOF</text>`;
+      } else if (branch === "sof-aviation") {
+        base = `<text x="${cx}" y="${oy + 11}" font-size="10" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">SOF</text>
+                <circle cx="${cx}" cy="${cy + 1.5}" r="3.2" fill="${stroke}" />
+                <circle cx="${cx}" cy="${cy + 11.5}" r="3.2" fill="${stroke}" />
+                <circle cx="${cx - 5}" cy="${cy + 6.5}" r="3.2" fill="${stroke}" />
+                <circle cx="${cx + 5}" cy="${cy + 6.5}" r="3.2" fill="${stroke}" />
+                <circle cx="${cx}" cy="${cy + 6.5}" r="2" fill="${stroke}" />`;
+      } else if (branch === "sof-boats") {
+        base = `<line x1="${cx - 8}" y1="${cy - 2}" x2="${cx + 8}" y2="${cy + 12}" stroke="${stroke}" stroke-width="1.8" stroke-linecap="round" />
+                <line x1="${cx + 8}" y1="${cy - 2}" x2="${cx - 8}" y2="${cy + 12}" stroke="${stroke}" stroke-width="1.8" stroke-linecap="round" />
+                <text x="${cx}" y="${oy + 13}" font-size="11" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">SOF</text>`;
+      } else if (branch === "sof-divers") {
+        base = `<circle cx="${cx}" cy="${cy + 5}" r="5" fill="none" stroke="${stroke}" stroke-width="1.8" />
+                <rect x="${cx - 3}" y="${cy - 2}" width="6" height="3" fill="${stroke}" />
+                <text x="${cx}" y="${oy + 13}" font-size="11" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">SOF</text>`;
+      } else if (branch === "sof-engineer") {
+        base = `<path d="M ${ox + 16},${oy + H - 6} V ${cy + 4} H ${ox + W - 16} V ${oy + H - 6} M ${cx},${cy + 4} V ${oy + H - 6}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linecap="square" />
+                <text x="${cx}" y="${oy + 13}" font-size="11" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">SOF</text>`;
+      } else if (branch === "sof-snipers") {
+        base = `<line x1="${cx - 7}" y1="${oy + 7}" x2="${cx - 2}" y2="${oy + 7}" stroke="${stroke}" stroke-width="${strokeW}" />
+                <line x1="${cx + 2}" y1="${oy + 7}" x2="${cx + 7}" y2="${oy + 7}" stroke="${stroke}" stroke-width="${strokeW}" />
+                <line x1="${cx}" y1="${oy + 7}" x2="${cx}" y2="${oy + 14}" stroke="${stroke}" stroke-width="${strokeW}" />
+                <text x="${cx}" y="${cy + 8}" font-size="11" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">SOF</text>`;
+      }
+
+      let modSvg = "";
+      if (mob === "towed") {
+        const wy = cy + 9;
+        modSvg = `<line x1="${cx - 10.5}" y1="${wy}" x2="${cx + 10.5}" y2="${wy}" stroke="${stroke}" stroke-width="2" />
+                  <circle cx="${cx - 14}" cy="${wy}" r="3.2" fill="none" stroke="${stroke}" stroke-width="2" />
+                  <circle cx="${cx + 14}" cy="${wy}" r="3.2" fill="none" stroke="${stroke}" stroke-width="2" />`;
+      } else if (mob === "motorized") {
+        modSvg = `<line x1="${cx}" y1="${oy}" x2="${cx}" y2="${oy + H}" stroke="${stroke}" stroke-width="${strokeW}" />`;
+      } else if (mob === "wheeled" || mob === "armour-wheeled") {
+        const wy = oy + H - 6;
+        modSvg = `<circle cx="${cx - 14}" cy="${wy}" r="3" fill="none" stroke="${stroke}" stroke-width="2" />
+                  <circle cx="${cx}" cy="${wy}" r="3" fill="none" stroke="${stroke}" stroke-width="2" />
+                  <circle cx="${cx + 14}" cy="${wy}" r="3" fill="none" stroke="${stroke}" stroke-width="2" />`;
+      } else if (mob === "airborne") {
+        modSvg = `<path d="M ${cx - 18},${cy + 15} Q ${cx - 9},${cy + 5} ${cx},${cy + 12} Q ${cx + 9},${cy + 5} ${cx + 18},${cy + 15}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linecap="round" />`;
+      } else if (mob === "airmobile") {
+        modSvg = `<polyline points="${cx - 13},${cy - 6} ${cx},${oy + 6} ${cx + 13},${cy - 6}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linejoin="miter" />`;
+      } else if (mob === "amphibious") {
+        modSvg = `<path d="M ${ox},${cy} q 6,-3.5 12,0 t 12,0 t 12,0 t 12,0 t 12,0 t 12,0" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linecap="round" />`;
+      } else if (mob === "arctic") {
+        modSvg = `<path d="M ${cx - 13},${cy + 11} C ${cx - 18},${cy + 11} ${cx - 18},${cy + 17} ${cx - 12},${cy + 17} L ${cx + 12},${cy + 17} C ${cx + 18},${cy + 17} ${cx + 18},${cy + 11} ${cx + 13},${cy + 11}" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" />`;
+      }
+
+      let bdgSvg = "";
+      if (badge === "lo") {
+        base = "";
+        bdgSvg = `<text x="${cx}" y="${cy + 5}" font-size="14" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">LO</text>`;
+      } else if (badge === "light") {
+        const ly = (branch === "armor") ? (cy + 6) : (cy + 14);
+        bdgSvg = `<text x="${cx}" y="${ly}" font-size="13" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">L</text>`;
+      } else if (badge === "heavy") {
+        bdgSvg = `<text x="${cx}" y="${cy + 6}" font-size="13" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">H</text>`;
+      } else if (badge === "sof") {
+        bdgSvg = `<text x="${cx}" y="${oy + 13}" font-size="11" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">SOF</text>`;
+      } else if (badge === "cbt") {
+        bdgSvg = `<text x="${cx}" y="${oy + 13}" font-size="11" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">CBT</text>`;
+      } else if (badge === "spt") {
+        bdgSvg = `<text x="${cx}" y="${oy + 13}" font-size="11" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">SPT</text>`;
+      } else if (badge === "suw") {
+        bdgSvg = `<text x="${cx}" y="${oy + 9}" font-size="9" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">SUW</text>`;
+      } else if (badge === "ta") {
+        bdgSvg = `<text x="${cx}" y="${oy + 13}" font-size="11" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">TA</text>`;
+      }
+
+      let ech = "";
+      const markB = oy - 4, markT = markB - 11;
+      let halfW = 8;
+      if (echelon === "·") {
+        ech = `<circle cx="${cx}" cy="${markB - 5}" r="2.8" fill="${stroke}" />`;
+      } else if (echelon === "···") {
+        ech = `<circle cx="${cx - 8}" cy="${markB - 5}" r="2.8" fill="${stroke}" />
+               <circle cx="${cx}" cy="${markB - 5}" r="2.8" fill="${stroke}" />
+               <circle cx="${cx + 8}" cy="${markB - 5}" r="2.8" fill="${stroke}" />`;
+        halfW = 12;
+      } else if (echelon === "I") {
+        ech = `<line x1="${cx}" y1="${markB}" x2="${cx}" y2="${markT}" stroke="${stroke}" stroke-width="${strokeW}" />`;
+      } else if (echelon === "II") {
+        ech = `<line x1="${cx - 4}" y1="${markB}" x2="${cx - 4}" y2="${markT}" stroke="${stroke}" stroke-width="${strokeW}" />
+               <line x1="${cx + 4}" y1="${markB}" x2="${cx + 4}" y2="${markT}" stroke="${stroke}" stroke-width="${strokeW}" />`;
+        halfW = 11;
+      } else if (echelon === "III") {
+        ech = `<line x1="${cx - 6}" y1="${markB}" x2="${cx - 6}" y2="${markT}" stroke="${stroke}" stroke-width="${strokeW}" />
+               <line x1="${cx}" y1="${markB}" x2="${cx}" y2="${markT}" stroke="${stroke}" stroke-width="${strokeW}" />
+               <line x1="${cx + 6}" y1="${markB}" x2="${cx + 6}" y2="${markT}" stroke="${stroke}" stroke-width="${strokeW}" />`;
+        halfW = 14;
+      } else if (echelon === "X") {
+        ech = `<text x="${cx}" y="${markB - 1}" font-size="13" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">${echelon}</text>`;
+        halfW = 9;
+      } else if (echelon === "XX") {
+        ech = `<text x="${cx}" y="${markB - 1}" font-size="13" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">${echelon}</text>`;
+        halfW = 14;
+      } else if (echelon === "XXXX") {
+        ech = `<text x="${cx}" y="${markB - 1}" font-size="12" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">${echelon}</text>`;
+        halfW = 18;
+      } else if (echelon === "XXXXXX") {
+        ech = `<text x="${cx}" y="${markB - 1}" font-size="11" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">${echelon}</text>`;
+        halfW = 22;
+      }
+
+      if (taskForce) {
+        ech += `<path d="M ${cx - halfW},${markB + 1} L ${cx - halfW},${markT - 3} L ${cx + halfW},${markT - 3} L ${cx + halfW},${markB + 1}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" />`;
+      }
+
+      const tx = ox + W + (stacks - 1) * 5 + 14;
+      const textGroup = `
+        <text x="${tx}" y="${cy - 4}" font-size="13" font-weight="700" fill="${textMain}" dominant-baseline="central">${title}</text>
+        <text x="${tx}" y="${cy + 13}" font-size="11" font-weight="400" fill="${textSub}" dominant-baseline="central">${desc}</text>
+      `;
+
+      return `${rects}${hqStaff}${tracked}${base}${modSvg}${bdgSvg}${ech}${textGroup}`;
+    }
+
+    // 默认通用第一合成机甲旅规范数据集
+    const initialOrbatData = {
+      root: { id: "root", title: "通用第一合成机甲旅", desc: "旅指挥部", color: "#5B8FF9", branch: "armor", echelon: "X" },
+      hqAttachment: { id: "hq", title: "旅总部 (HQ)", desc: "旅直属参谋组", color: "#5B8FF9", branch: "hq", echelon: "II", side: "right" },
+      columns: [
+        {
+          id: "col_1",
+          title: "坦克营部与分队",
+          type: "commander", // 【形态一：主官领队型 (图 2)】
+          units: [
+            { id: "u_1", title: "第1主战坦克营", desc: "主战坦克 x 31", color: "#5B8FF9", branch: "armor", echelon: "II" },
+            { id: "u_2", title: "第2主战坦克营", desc: "主战坦克 x 31", color: "#5B8FF9", branch: "armor", echelon: "II" },
+            { id: "u_3", title: "第3主战坦克营", desc: "主战坦克 x 31", color: "#5B8FF9", branch: "armor", echelon: "II" }
+          ]
+        },
+        {
+          id: "col_2",
+          title: "机步营部与分队",
+          type: "commander", // 【形态一：主官领队型 (图 2)】
+          units: [
+            { id: "u_4", title: "第1机械化步兵营", desc: "履带步战车 x 31", color: "#5B8FF9", branch: "infantry", mobility: "tracked", echelon: "II" },
+            { id: "u_5", title: "第2机械化步兵营", desc: "履带步战车 x 31", color: "#5B8FF9", branch: "infantry", mobility: "tracked", echelon: "II" }
+          ]
+        },
+        {
+          id: "col_3",
+          title: "炮兵营部与分队",
+          type: "commander", // 【形态一：主官领队型 (图 2)】
+          units: [
+            { id: "u_6", title: "第1自行加榴炮营", desc: "155mm自行火炮 x 18", color: "#5B8FF9", branch: "artillery", mobility: "tracked", echelon: "II" },
+            { id: "u_7", title: "第2自行加榴炮营", desc: "155mm自行火炮 x 18", color: "#5B8FF9", branch: "artillery", mobility: "tracked", echelon: "II" }
+          ]
+        },
+        {
+          id: "col_direct",
+          title: "旅直属支援连队",
+          type: "direct", // 【形态二：直属平级顺下列 (图 3 / 图 1 标准)】
+          units: [
+            { id: "u_8",  title: "战斗勤务支援营", desc: "旅综合后勤大队", color: "#5B8FF9", branch: "sustainment", echelon: "II" },
+            { id: "u_9",  title: "装甲侦察搜索连", desc: "装甲搜索车",     color: "#5B8FF9", branch: "recon", echelon: "I" },
+            { id: "u_10", title: "野战防空导弹连", desc: "近程低空防御",   color: "#5B8FF9", branch: "air-defense", echelon: "I" },
+            { id: "u_11", title: "战斗工程破障连", desc: "工程破障与架桥", color: "#5B8FF9", branch: "engineer", badge: "cbt", echelon: "I" },
+            { id: "u_12", title: "战术信息通信连", desc: "多路战术通信",   color: "#5B8FF9", branch: "cis", echelon: "I" },
+            { id: "u_13", title: "军事情报联络连", desc: "情报联络侦察",   color: "#5B8FF9", branch: "mi", badge: "lo", echelon: "I" },
+            { id: "u_14", title: "核生化防卫连",   desc: "三防洗消与侦检", color: "#5B8FF9", branch: "cbrn", echelon: "I" }
+          ]
+        }
+      ]
+    };
+
+    let orbatData = JSON.parse(JSON.stringify(initialOrbatData));
+    let selectedRef = { type: "root", colIdx: null, unitIdx: null };
+
+    // 获取单位几何顶界（用于主官卡片顶部的呼吸断口计算）
+    function getUnitVisualTop(unit) {
+      if (!unit) return 24;
+      if (unit.taskForce) return 6;
+      if (unit.echelon && unit.echelon.trim() !== "" && unit.echelon !== "none") {
+        if (unit.echelon === "·" || unit.echelon === "···") return 12;
+        if (unit.echelon === "X" || unit.echelon === "XX" || unit.echelon === "XXXX" || unit.echelon === "XXXXXX") return 7;
+        return 9;
+      }
+      return 24;
+    }
+
+    function findCategoryByBranch(branchId) {
+      for (const [cat, list] of Object.entries(BRANCH_HIERARCHY)) {
+        if (list.some(b => b.id === branchId)) return cat;
+      }
+      return "infantry";
+    }
+
+    // 核心树排版引擎：彻底消除 S 弯，严格还原左侧笔直贯通垂向母线
+    function renderTree() {
+      const svg = document.getElementById("orbat-svg");
+      const strokeColor = isDark ? "#FFFFFF" : "#000000";
+
+      const CARD_W = 270;
+      const CARD_H = 76;
+      const TOP_PAD = 40;
+      const LEFT_PAD = 70;
+      const BOX_CX = 46;
+      const BOX_LEFT_OFFSET = 10;
+      const BOX_CY_OFFSET = 46;
+
+      const numCols = orbatData.columns.length;
+      let colPositions = [];
+
+      for (let i = 0; i < numCols; i++) {
+        const x = LEFT_PAD + i * (CARD_W + colGap);
+        colPositions.push({ x, cx: x + BOX_CX });
+      }
+
+      // 根节点居于全树中心
+      let trunkX = LEFT_PAD + CARD_W / 2;
+      if (numCols > 0) {
+        trunkX = (colPositions[0].cx + colPositions[numCols - 1].cx) / 2;
+      }
+      const rootX = trunkX - BOX_CX;
+      const rootY = TOP_PAD;
+      const rootBottomY = rootY + 68 + (((orbatData.root.stacks || 1) - 1) * 5);
+
+      // 中轴单独侧挂总部 (HQ)
+      const hq = orbatData.hqAttachment;
+      const hasHq = !!hq;
+      const attachY = rootBottomY + 44;
+      const attachJuncY = attachY - 14;
+
+      let hqPos = null;
+      if (hasHq) {
+        const isLeft = (hq.side || "right") === "left";
+        const hqX = isLeft ? (trunkX - 44 - CARD_W) : (trunkX + 44);
+        hqPos = { x: hqX, y: attachY, cx: hqX + BOX_CX, isLeft };
+      }
+
+      // 水平分流主大梁（Crossbar）高度
+      const busY = hasHq ? (attachY + 68 + 44) : (rootBottomY + 44);
+      const colStartY = busY + 36;
+
+      let svgMarkup = "";
+      let linesMarkup = "";
+
+      // A. 主干中轴垂线
+      linesMarkup += `<line x1="${trunkX}" y1="${rootBottomY}" x2="${trunkX}" y2="${busY}" stroke="${strokeColor}" stroke-width="2" />`;
+
+      // B. 单一总部侧挂连线
+      if (hasHq) {
+        const endY = hqPos.y + getUnitVisualTop(hq) - 7;
+        linesMarkup += `
+          <line x1="${trunkX}" y1="${attachJuncY}" x2="${hqPos.cx}" y2="${attachJuncY}" stroke="${strokeColor}" stroke-width="2" />
+          <line x1="${hqPos.cx}" y1="${attachJuncY}" x2="${hqPos.cx}" y2="${endY}" stroke="${strokeColor}" stroke-width="2" />
+        `;
+      }
+
+      let minBusX = trunkX;
+      let maxBusX = trunkX;
+
+      let maxCanvasY = colStartY;
+      let minCanvasX = Math.min(rootX, hasHq ? hqPos.x : rootX, numCols > 0 ? colPositions[0].x : rootX);
+      let maxCanvasX = Math.max(
+        rootX + CARD_W,
+        hasHq ? (hqPos.x + CARD_W) : rootX + CARD_W,
+        numCols > 0 ? (colPositions[numCols - 1].x + CARD_W) : rootX + CARD_W
+      );
+
+      // C. 遍历渲染各列（消除所有 S 弯，保持母线 100% 垂直贯通）
+      orbatData.columns.forEach((col, cIdx) => {
+        const colPos = colPositions[cIdx];
+        const colType = col.type || "commander";
+        const cardBoxLeft = colPos.x + BOX_LEFT_OFFSET;
+        const busX = cardBoxLeft - 18;
+
+        minCanvasX = Math.min(minCanvasX, busX - 10);
+
+        if (colType === "commander") {
+          // ==================== 形态一：主官领队型 (图 1 / 图 2 修正版：无任何 S 弯) ====================
+          minBusX = Math.min(minBusX, colPos.cx);
+          maxBusX = Math.max(maxBusX, colPos.cx);
+
+          const u0 = col.units[0];
+          const u0y = colStartY;
+          maxCanvasY = Math.max(maxCanvasY, u0y + CARD_H + 40);
+
+          // 大梁竖线直下接入主官卡片顶部中点（呼吸断口）
+          const u0Top = u0y + getUnitVisualTop(u0);
+          linesMarkup += `<line x1="${colPos.cx}" y1="${busY}" x2="${colPos.cx}" y2="${u0Top - 7}" stroke="${strokeColor}" stroke-width="2" />`;
+
+          // 绘制主官卡片
+          const isU0Sel = selectedRef.type === "column" && selectedRef.colIdx === cIdx && selectedRef.unitIdx === 0;
+          svgMarkup += renderCardGroup(u0, colPos.x, u0y, isU0Sel, `selectNode('column', ${cIdx}, 0)`);
+
+          // 如果存在后续下属营/连单位
+          if (col.units.length > 1) {
+            const u0CenterY = u0y + BOX_CY_OFFSET;
+            const lastSubY = colStartY + (col.units.length - 1) * (CARD_H + rowGap) + BOX_CY_OFFSET;
+
+            // 主官卡片左侧水平出线直插垂直母线顶端
+            linesMarkup += `<line x1="${busX}" y1="${u0CenterY}" x2="${cardBoxLeft}" y2="${u0CenterY}" stroke="${strokeColor}" stroke-width="2" />`;
+
+            // 【核心连线修正】：一条从上到下 100% 笔直贯通的垂直母线（无任何 S 弯拐角）
+            linesMarkup += `<line x1="${busX}" y1="${u0CenterY}" x2="${busX}" y2="${lastSubY}" stroke="${strokeColor}" stroke-width="2" />`;
+
+            // 所有后续下级卡片，像梳子一样直接由母线水平向右直插左边框中点
+            for (let uIdx = 1; uIdx < col.units.length; uIdx++) {
+              const unit = col.units[uIdx];
+              const uy = colStartY + uIdx * (CARD_H + rowGap);
+              maxCanvasY = Math.max(maxCanvasY, uy + CARD_H + 40);
+
+              const cardCenterY = uy + BOX_CY_OFFSET;
+
+              // 水平支线直插卡片左边框中点
+              linesMarkup += `<line x1="${busX}" y1="${cardCenterY}" x2="${cardBoxLeft}" y2="${cardCenterY}" stroke="${strokeColor}" stroke-width="2" />`;
+
+              const isSel = selectedRef.type === "column" && selectedRef.colIdx === cIdx && selectedRef.unitIdx === uIdx;
+              svgMarkup += renderCardGroup(unit, colPos.x, uy, isSel, `selectNode('column', ${cIdx}, ${uIdx})`);
+            }
+          }
+
+        } else {
+          // ==================== 形态二：直属平级顺下列 (图 1 / 图 3 标准梳状) ====================
+          minBusX = Math.min(minBusX, busX);
+          maxBusX = Math.max(maxBusX, busX);
+
+          const lastCardCenterY = colStartY + (col.units.length - 1) * (CARD_H + rowGap) + BOX_CY_OFFSET;
+
+          // 大梁 90° 直角下弯形成的整根笔直垂直母线
+          linesMarkup += `<line x1="${busX}" y1="${busY}" x2="${busX}" y2="${lastCardCenterY}" stroke="${strokeColor}" stroke-width="2" />`;
+
+          col.units.forEach((unit, uIdx) => {
+            const uy = colStartY + uIdx * (CARD_H + rowGap);
+            maxCanvasY = Math.max(maxCanvasY, uy + CARD_H + 40);
+
+            const cardCenterY = uy + BOX_CY_OFFSET;
+
+            // 所有下级单位完全平级，均从左侧垂直母线水平伸出支线直插左边框中点
+            linesMarkup += `<line x1="${busX}" y1="${cardCenterY}" x2="${cardBoxLeft}" y2="${cardCenterY}" stroke="${strokeColor}" stroke-width="2" />`;
+
+            const isSel = selectedRef.type === "column" && selectedRef.colIdx === cIdx && selectedRef.unitIdx === uIdx;
+            svgMarkup += renderCardGroup(unit, colPos.x, uy, isSel, `selectNode('column', ${cIdx}, ${uIdx})`);
+          });
+        }
+      });
+
+      // 贯通上方水平主大梁
+      if (numCols > 0) {
+        linesMarkup += `<line x1="${minBusX}" y1="${busY}" x2="${maxBusX}" y2="${busY}" stroke="${strokeColor}" stroke-width="2" />`;
+      }
+
+      // 根节点
+      const isRootSel = selectedRef.type === "root";
+      svgMarkup += renderCardGroup(orbatData.root, rootX, rootY, isRootSel, `selectNode('root')`);
+
+      // HQ 侧挂节点
+      if (hasHq) {
+        const isHqSel = selectedRef.type === "hqAttachment";
+        svgMarkup += renderCardGroup(hq, hqPos.x, hqPos.y, isHqSel, `selectNode('hqAttachment')`);
+      }
+
+      const totalW = Math.max(maxCanvasX + 100, 1150);
+      const totalH = Math.max(maxCanvasY, 780);
+
+      svg.setAttribute("width", totalW.toString());
+      svg.setAttribute("height", totalH.toString());
+      svg.setAttribute("viewBox", `0 0 ${totalW} ${totalH}`);
+      svg.innerHTML = `<g id="scene-root">${linesMarkup}${svgMarkup}</g>`;
+
+      applyTransform();
+      renderOutlineTree();
+      updateInspector();
+    }
+
+    function renderCardGroup(unit, x, y, isSelected, onClickStr) {
+      const activeColor = isDark ? "#38bdf8" : "#2563eb";
+      const selStroke = isSelected 
+        ? `<rect class="node-hover-box" x="-4" y="0" width="${270 + ((unit.stacks||1)-1)*5 + 8}" height="76" fill="none" stroke="${activeColor}" stroke-width="2" stroke-dasharray="3,3" rx="4" />` 
+        : `<rect class="node-hover-box" x="-4" y="0" width="${270 + ((unit.stacks||1)-1)*5 + 8}" height="76" fill="transparent" stroke="transparent" stroke-width="1.5" rx="4" />`;
+      
+      return `
+        <g class="clickable-node" transform="translate(${x}, ${y})" onclick="${onClickStr}">
+          ${selStroke}
+          ${renderNATOUnit(unit)}
+        </g>
+      `;
+    }
+
+    // 渲染大纲树导航
+    function renderOutlineTree() {
+      const container = document.getElementById("outline-tree");
+      let html = "";
+
+      const rootSel = selectedRef.type === "root" ? "selected" : "";
+      html += `
+        <div class="tree-node-item ${rootSel}" onclick="selectNode('root')">
+          <span>🏛️ <strong>${escapeHtml(orbatData.root.title)}</strong></span>
+          <span style="font-size: 11px; color: var(--subtext);">${orbatData.root.echelon || "无"}</span>
+        </div>
+      `;
+
+      html += `<div style="margin: 8px 0 4px 4px; font-size: 11px; font-weight: 700; color: var(--subtext);">中轴主干侧挂 (HQ Attachment)</div>`;
+      
+      if (orbatData.hqAttachment) {
+        const sel = selectedRef.type === "hqAttachment" ? "selected" : "";
+        const sideIcon = (orbatData.hqAttachment.side || "right") === "left" ? "👈" : "👉";
+        html += `
+          <div class="tree-node-item ${sel}" onclick="selectNode('hqAttachment')">
+            <span>${sideIcon} ${escapeHtml(orbatData.hqAttachment.title)}</span>
+            <button class="sm danger" onclick="event.stopPropagation(); removeHqAttachment()">✕</button>
+          </div>
+        `;
+      } else {
+        html += `<button class="sm" style="width: 100%; margin-bottom: 6px;" onclick="addHqAttachment()">➕ 侧挂旅总部 (HQ)</button>`;
+      }
+
+      html += `<div style="margin: 8px 0 4px 4px; font-size: 11px; font-weight: 700; color: var(--subtext);">下辖纵队阵列 (Columns)</div>`;
+
+      orbatData.columns.forEach((col, cIdx) => {
+        const isCmd = (col.type || "commander") === "commander";
+        const layoutText = isCmd ? "主官领队" : "直属顺下";
+        const colTitle = col.title || `第 ${cIdx + 1} 列`;
+        html += `
+          <div class="col-group">
+            <div class="col-header">
+              <span>${colTitle}</span>
+              <div>
+                <button class="sm" onclick="toggleColType(${cIdx})" title="切换本列形态（形态一:图2 / 形态二:图3）">${layoutText} ⇄</button>
+                <button class="sm" onclick="addUnitToColumn(${cIdx})" title="追加下属分队">➕ 加单位</button>
+                <button class="sm danger" onclick="removeColumn(${cIdx})" title="删除整列">✕</button>
+              </div>
+            </div>
+        `;
+
+        col.units.forEach((u, uIdx) => {
+          const isSel = selectedRef.type === "column" && selectedRef.colIdx === cIdx && selectedRef.unitIdx === uIdx;
+          const rolePrefix = (isCmd && uIdx === 0) ? "👑 " : "• ";
+          html += `
+            <div class="tree-node-item ${isSel ? 'selected' : ''}" onclick="selectNode('column', ${cIdx}, ${uIdx})">
+              <span>${rolePrefix}${escapeHtml(u.title || "未命名分队")}</span>
+              <span style="font-size: 10px; color: var(--subtext);">${u.echelon || ""}</span>
+            </div>
+          `;
+        });
+
+        html += `</div>`;
+      });
+
+      container.innerHTML = html;
+    }
+
+    // 选中节点（同时支持全端自适应切换）
+    function selectNode(type, colIdx = null, unitIdx = null) {
+      selectedRef = { type, colIdx, unitIdx };
+      renderTree();
+
+      // 手机端关键联动：点击画布兵牌自动切入属性检查器
+      if (window.innerWidth <= 900) {
+        switchMobileTab('inspector');
+      }
+    }
+
+    function getSelectedUnit() {
+      if (selectedRef.type === "root") return orbatData.root;
+      if (selectedRef.type === "hqAttachment") return orbatData.hqAttachment;
+      if (selectedRef.type === "column" && selectedRef.colIdx !== null && selectedRef.unitIdx !== null) {
+        return orbatData.columns[selectedRef.colIdx]?.units[selectedRef.unitIdx] || null;
+      }
+      return null;
+    }
+
+    function updateInspector() {
+      const unit = getSelectedUnit();
+      const fields = document.getElementById("inspector-fields");
+      const placeholder = document.getElementById("inspector-placeholder");
+      const typeBadge = document.getElementById("selected-type-badge");
+      const actionsBox = document.getElementById("node-actions-box");
+      const sideBox = document.getElementById("side-select-box");
+      const colLayoutBox = document.getElementById("col-layout-box");
+
+      if (!unit) {
+        fields.style.display = "none";
+        placeholder.style.display = "block";
+        typeBadge.textContent = "未选择";
+        return;
+      }
+
+      fields.style.display = "block";
+      placeholder.style.display = "none";
+
+      if (selectedRef.type === "root") {
+        typeBadge.textContent = "旅司令部 (Root)";
+        sideBox.style.display = "none";
+        colLayoutBox.style.display = "none";
+      } else if (selectedRef.type === "hqAttachment") {
+        typeBadge.textContent = "旅总部参谋组 (HQ)";
+        sideBox.style.display = "block";
+        colLayoutBox.style.display = "none";
+        document.getElementById("node-side").value = unit.side || "right";
+      } else {
+        const curCol = orbatData.columns[selectedRef.colIdx];
+        typeBadge.textContent = `${curCol.title || '纵队'} #${selectedRef.unitIdx + 1}`;
+        sideBox.style.display = "none";
+        colLayoutBox.style.display = "block";
+
+        const isCmd = (curCol.type || "commander") === "commander";
+        document.getElementById("btn-layout-commander").className = isCmd ? "sm primary" : "sm";
+        document.getElementById("btn-layout-direct").className = !isCmd ? "sm primary" : "sm";
+      }
+
+      document.getElementById("node-title").value = unit.title || "";
+      document.getElementById("node-desc").value = unit.desc || "";
+
+      const cat = findCategoryByBranch(unit.branch || "infantry");
+      document.getElementById("node-cat").value = cat;
+      populateBranchOptions(cat, unit.branch);
+
+      document.getElementById("node-color").value = unit.color || "#5B8FF9";
+      document.getElementById("node-color-text").value = unit.color || "#5B8FF9";
+      document.getElementById("node-echelon").value = unit.echelon !== undefined ? unit.echelon : "II";
+      document.getElementById("node-mobility").value = unit.mobility || "none";
+      document.getElementById("node-badge").value = unit.badge || "none";
+      document.getElementById("node-stacks").value = (unit.stacks || 1).toString();
+      document.getElementById("node-taskforce").checked = !!unit.taskForce;
+
+      let actionsHtml = "";
+      if (selectedRef.type === "column") {
+        actionsHtml = `
+          <div style="display: flex; gap: 6px; margin-top: 4px;">
+            <button class="sm" style="flex: 1;" onclick="moveUnitOrder(-1)">🔼 上移</button>
+            <button class="sm" style="flex: 1;" onclick="moveUnitOrder(1)">🔽 下移</button>
+            <button class="sm danger" style="flex: 1;" onclick="deleteCurrentUnit()">🗑️ 删除</button>
+          </div>
+        `;
+      } else if (selectedRef.type === "hqAttachment") {
+        actionsHtml = `<button class="sm danger" style="width: 100%; margin-top: 4px;" onclick="removeHqAttachment()">🗑️ 移除此旅总部</button>`;
+      }
+      actionsBox.innerHTML = actionsHtml;
+    }
+
+    function populateBranchOptions(cat, selectedBranch) {
+      const branchSelect = document.getElementById("node-branch");
+      const list = BRANCH_HIERARCHY[cat] || [];
+      branchSelect.innerHTML = list.map(item => `<option value="${item.id}">${item.name}</option>`).join("");
+      if (selectedBranch) {
+        branchSelect.value = selectedBranch;
+      }
+    }
+
+    function onCategoryChange() {
+      const cat = document.getElementById("node-cat").value;
+      populateBranchOptions(cat);
+      const newBranch = document.getElementById("node-branch").value;
+      updateCurrentNode("branch", newBranch);
+    }
+
+    function updateCurrentNode(prop, value) {
+      const unit = getSelectedUnit();
+      if (!unit) return;
+      unit[prop] = value;
+      if (prop === "color") {
+        document.getElementById("node-color").value = value;
+        document.getElementById("node-color-text").value = value;
+      }
+      renderTree();
+    }
+
+    function setQuickColor(hex) {
+      updateCurrentNode("color", hex);
+    }
+
+    // 初始化图 3 风格多梯次战术色板
+    function initTacticalMatrixPalette() {
+      const container = document.getElementById("tactical-palette-grid");
+      container.innerHTML = TACTICAL_MATRIX_COLORS.map(color => `
+        <button class="matrix-color-cell" style="background: ${color};" onclick="setQuickColor('${color}')"></button>
+      `).join("");
+    }
+
+    // 列形态切换
+    function toggleColType(cIdx) {
+      const col = orbatData.columns[cIdx];
+      col.type = (col.type === "direct") ? "commander" : "direct";
+      renderTree();
+    }
+
+    function setColType(type) {
+      if (selectedRef.type === "column" && selectedRef.colIdx !== null) {
+        orbatData.columns[selectedRef.colIdx].type = type;
+        renderTree();
+      }
+    }
+
+    // 增删改查
+    function addNewColumn() {
+      const newColId = "col_" + Date.now();
+      orbatData.columns.push({
+        id: newColId,
+        title: "新合成营部与分队",
+        type: "commander",
+        units: [
+          { id: "u_" + Date.now(), title: "新建装甲步兵营", desc: "步兵战车 x 31", color: "#5B8FF9", branch: "infantry", mobility: "tracked", echelon: "II" }
+        ]
+      });
+      selectedRef = { type: "column", colIdx: orbatData.columns.length - 1, unitIdx: 0 };
+      renderTree();
+    }
+
+    function removeColumn(cIdx) {
+      if (confirm(`确定删除第 ${cIdx + 1} 列及其所有下属分队吗？`)) {
+        orbatData.columns.splice(cIdx, 1);
+        selectedRef = { type: "root", colIdx: null, unitIdx: null };
+        renderTree();
+      }
+    }
+
+    function addUnitToColumn(cIdx) {
+      const newUnit = {
+        id: "u_" + Date.now(),
+        title: "新下属连队",
+        desc: "通用主战连",
+        color: "#5B8FF9",
+        branch: "infantry",
+        echelon: "I"
+      };
+      orbatData.columns[cIdx].units.push(newUnit);
+      selectedRef = { type: "column", colIdx: cIdx, unitIdx: orbatData.columns[cIdx].units.length - 1 };
+      renderTree();
+    }
+
+    function deleteCurrentUnit() {
+      if (selectedRef.type === "column" && selectedRef.colIdx !== null && selectedRef.unitIdx !== null) {
+        orbatData.columns[selectedRef.colIdx].units.splice(selectedRef.unitIdx, 1);
+        selectedRef = { type: "root", colIdx: null, unitIdx: null };
+        renderTree();
+      }
+    }
+
+    function moveUnitOrder(direction) {
+      if (selectedRef.type !== "column") return;
+      const units = orbatData.columns[selectedRef.colIdx].units;
+      const oldIdx = selectedRef.unitIdx;
+      const newIdx = oldIdx + direction;
+      if (newIdx < 0 || newIdx >= units.length) return;
+      const temp = units[oldIdx];
+      units[oldIdx] = units[newIdx];
+      units[newIdx] = temp;
+      selectedRef.unitIdx = newIdx;
+      renderTree();
+    }
+
+    function addHqAttachment() {
+      orbatData.hqAttachment = { id: "hq", title: "旅总部 (HQ)", desc: "旅直属参谋组", color: "#5B8FF9", branch: "hq", echelon: "II", side: "right" };
+      selectedRef = { type: "hqAttachment", colIdx: null, unitIdx: null };
+      renderTree();
+    }
+
+    function removeHqAttachment() {
+      orbatData.hqAttachment = null;
+      selectedRef = { type: "root", colIdx: null, unitIdx: null };
+      renderTree();
+    }
+
+    function onColGapChange(val) {
+      colGap = parseInt(val);
+      document.getElementById("label-col-gap").textContent = colGap + "px";
+      renderTree();
+    }
+    function onRowGapChange(val) {
+      rowGap = parseInt(val);
+      document.getElementById("label-row-gap").textContent = rowGap + "px";
+      renderTree();
+    }
+
+    function clearAllOrbat() {
+      if (confirm("确定清空全部编制吗？所有下属纵队和旅总部将被移除，仅保留一个空白根节点。")) {
+        orbatData = {
+          root: { id: "root", title: "通用第一机甲旅", desc: "旅指挥部", color: "#5B8FF9", branch: "armor", echelon: "X" },
+          hqAttachment: null,
+          columns: []
+        };
+        selectedRef = { type: "root", colIdx: null, unitIdx: null };
+        renderTree();
+        fitToScreen();
+      }
+    }
+
+    function resetToStandardBrigade() {
+      if (confirm("确定重置为通用第一合成机甲旅标准编制？未保存的变动将丢失。")) {
+        orbatData = JSON.parse(JSON.stringify(initialOrbatData));
+        selectedRef = { type: "root", colIdx: null, unitIdx: null };
+        renderTree();
+        fitToScreen();
+      }
+    }
+
+    // 手机端 Tab 切换逻辑
+    function switchMobileTab(tab) {
+      document.body.classList.remove('mobile-tab-outline', 'mobile-tab-inspector');
+      document.body.classList.add(`mobile-tab-${tab}`);
+      document.getElementById('btn-tab-outline').classList.toggle('active', tab === 'outline');
+      document.getElementById('btn-tab-inspector').classList.toggle('active', tab === 'inspector');
+    }
+
+    // 画布缩放与平移 (兼容鼠标与触控)
+    function applyTransform() {
+      const svg = document.getElementById("orbat-svg");
+      svg.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomScale})`;
+    }
+
+    function zoomCanvas(delta) {
+      zoomScale = Math.max(0.2, Math.min(3.0, zoomScale + delta));
+      applyTransform();
+    }
+
+    function resetZoom() {
+      zoomScale = 1.0;
+      panX = 40;
+      panY = 40;
+      applyTransform();
+    }
+
+    function fitToScreen() {
+      const svg = document.getElementById("orbat-svg");
+      const container = document.getElementById("canvas-container");
+      const w = parseFloat(svg.getAttribute("width")) || 1200;
+      const h = parseFloat(svg.getAttribute("height")) || 800;
+
+      const availW = container.clientWidth - 40;
+      const availH = container.clientHeight - 40;
+
+      zoomScale = Math.min(availW / w, availH / h, 1.0);
+      zoomScale = Math.max(0.25, zoomScale);
+
+      panX = (container.clientWidth - w * zoomScale) / 2;
+      panY = Math.max(16, (container.clientHeight - h * zoomScale) / 2);
+      applyTransform();
+    }
+
+    // 鼠标与单指触控平移支持
+    const canvasContainer = document.getElementById("canvas-container");
+
+    function handleStart(clientX, clientY, target) {
+      if (target.closest(".clickable-node") || target.closest("button") || target.closest("input")) return;
+      isPanning = true;
+      startMouseX = clientX - panX;
+      startMouseY = clientY - panY;
+    }
+    function handleMove(clientX, clientY) {
+      if (!isPanning) return;
+      panX = clientX - startMouseX;
+      panY = clientY - startMouseY;
+      applyTransform();
+    }
+    function handleEnd() {
+      isPanning = false;
+    }
+
+    canvasContainer.addEventListener("mousedown", (e) => handleStart(e.clientX, e.clientY, e.target));
+    window.addEventListener("mousemove", (e) => handleMove(e.clientX, e.clientY));
+    window.addEventListener("mouseup", handleEnd);
+
+    canvasContainer.addEventListener("touchstart", (e) => {
+      if (e.touches.length === 1) {
+        handleStart(e.touches[0].clientX, e.touches[0].clientY, e.target);
+      }
+    }, { passive: true });
+
+    window.addEventListener("touchmove", (e) => {
+      if (e.touches.length === 1) {
+        handleMove(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    }, { passive: true });
+
+    window.addEventListener("touchend", handleEnd);
+
+    canvasContainer.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 0.08 : -0.08;
+      zoomCanvas(delta);
+    }, { passive: false });
+
+    function toggleDarkMode() {
+      isDark = !isDark;
+      document.body.classList.toggle("dark-mode", isDark);
+      renderTree();
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    // 导出 SVG
+    function exportSVG() {
+      const svg = document.getElementById("orbat-svg");
+      const clone = svg.cloneNode(true);
+      clone.style.transform = "";
+      const serializer = new XMLSerializer();
+      let source = serializer.serializeToString(clone);
+      if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
+        source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+      }
+      const blob = new Blob([source], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "nato_orbat_chart.svg";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    // 导出 PNG
+    function exportPNG() {
+      const svg = document.getElementById("orbat-svg");
+      const w = parseFloat(svg.getAttribute("width")) || 1200;
+      const h = parseFloat(svg.getAttribute("height")) || 800;
+
+      const clone = svg.cloneNode(true);
+      clone.style.transform = "";
+      const serializer = new XMLSerializer();
+      const svgStr = serializer.serializeToString(clone);
+
+      const canvas = document.createElement("canvas");
+      const scale = 2; // 2x 超清输出
+      canvas.width = w * scale;
+      canvas.height = h * scale;
+      const ctx = canvas.getContext("2d");
+
+      const img = new Image();
+      const svgBlob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(svgBlob);
+
+      img.onload = function() {
+        ctx.fillStyle = isDark ? "#090D16" : "#F8FAFC";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(url);
+
+        const a = document.createElement("a");
+        a.download = "nato_orbat_chart_2x.png";
+        a.href = canvas.toDataURL("image/png");
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      };
+      img.src = url;
+    }
+
+    window.addEventListener("load", () => {
+      initTacticalMatrixPalette();
+      renderTree();
+      setTimeout(fitToScreen, 60);
+    });
+    window.addEventListener("resize", () => {
+      fitToScreen();
+    });
+  </script>
+</body>
+</html>
