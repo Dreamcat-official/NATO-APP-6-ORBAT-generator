@@ -79,7 +79,7 @@
     button.danger:hover { background: rgba(239, 68, 68, 0.1); }
     button.sm { padding: 3px 6px; font-size: 11px; }
 
-    /* 手机端专用分屏 Tab（电脑端隐藏） */
+    /* 手机端专用分屏 Tab */
     .mobile-tab-bar {
       display: none;
       height: 40px;
@@ -106,7 +106,7 @@
       background: var(--hover);
     }
 
-    /* 电脑端三栏布局容器 */
+    /* 布局容器 */
     .app-workspace {
       display: flex;
       flex: 1;
@@ -302,20 +302,17 @@
       z-index: 2;
     }
 
-    /* ==================== 手机端自适应分屏架构 (<= 900px) ==================== */
+    /* 手机端自适应分屏架构 (<= 900px) */
     @media (max-width: 900px) {
       .header-subtitle { display: none; }
       .header-actions button span.btn-text { display: none; }
       
-      .mobile-tab-bar {
-        display: flex;
-      }
+      .mobile-tab-bar { display: flex; }
       .app-workspace {
         flex-direction: column;
         height: calc(100vh - 48px - 40px);
       }
       
-      /* 上半部分：占 48vh 独立触控画布 */
       .pane-canvas {
         order: 1;
         height: 48vh;
@@ -324,7 +321,6 @@
         border-bottom: 1px solid var(--border);
       }
 
-      /* 下半部分：Tab 联动展示大纲或检查器 */
       .pane-outline {
         order: 2;
         width: 100% !important;
@@ -338,7 +334,6 @@
         border-left: none;
       }
 
-      /* 手机端 Tab 切换隐藏控制 */
       body.mobile-tab-outline .pane-inspector { display: none !important; }
       body.mobile-tab-outline .pane-outline { display: flex !important; }
 
@@ -359,8 +354,9 @@
       <button class="danger" onclick="clearAllOrbat()" title="清空全部编制">🗑️<span class="btn-text"> 清空</span></button>
       <button onclick="resetToStandardBrigade()" title="重置为默认编制">🔄<span class="btn-text"> 重置</span></button>
       <button onclick="toggleDarkMode()" title="浅色/深色切换">🌓<span class="btn-text"> 昼夜</span></button>
-      <button class="primary" onclick="exportSVG()" title="导出矢量 SVG">SVG</button>
-      <button onclick="exportPNG()" title="导出超清 PNG">2xPNG</button>
+      <button class="primary" onclick="exportSVG()" title="导出纯净矢量 SVG">SVG</button>
+      <button onclick="exportPNG(false)" title="导出带底色 2x PNG">2xPNG</button>
+      <button onclick="exportPNG(true)" title="导出透明底板 2x PNG">透明PNG</button>
     </div>
   </header>
 
@@ -563,7 +559,7 @@
       "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f8fafc", "#FFFFFF"
     ];
 
-    // 100% 完整继承的二级兵种映射表（严禁修改或删减）
+    // 100% 完整保留的二级兵种映射表（严禁修改或删减）
     const BRANCH_HIERARCHY = {
       hq: [
         { id: "hq", name: "通用指挥所/旅营总部 (Headquarters - 单顶横线)" },
@@ -896,7 +892,7 @@
         base = `<path d="M ${ox},${oy} L ${cx},${cy + 5} V ${cy - 5} L ${ox + W},${oy + H}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" />
                 <polygon points="${cx - 7},${oy + 6} ${cx + 7},${oy + 14} ${cx + 7},${oy + 6} ${cx - 7},${oy + 14}" fill="${stroke}" />`;
       } else if (branch === "comm-repair") {
-        base = `<path d="M ${ox},${oy} L ${cx},${cy + 5} V ${cy - 5} L ${ox + W},${oy + H}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linejoin="miter" />
+        base = `<path d="M ${ox},${oy} L ${cx},${cy + 5} V ${cy - 5} L ${ox + W},${oy + H}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" />
                 <path d="M ${cx - 8},${oy + 7.5} A 3,3 0 0,1 ${cx - 8},${oy + 13.5} M ${cx - 5},${oy + 10.5} H ${cx + 5} M ${cx + 8},${oy + 7.5} A 3,3 0 0,0 ${cx + 8},${oy + 13.5}" fill="none" stroke="${stroke}" stroke-width="1.8" stroke-linecap="round" />`;
       } else if (branch === "cybr") {
         base = `<text x="${cx}" y="${cy + 4}" font-size="12" font-weight="900" fill="${stroke}" text-anchor="middle" font-family="Arial">CYBR</text>`;
@@ -1085,7 +1081,7 @@
         {
           id: "col_1",
           title: "坦克营部与分队",
-          type: "commander", // 【形态一：主官领队型 (图 2)】
+          type: "commander", // 【形态一：主官领队型】
           units: [
             { id: "u_1", title: "第1主战坦克营", desc: "主战坦克 x 31", color: "#5B8FF9", branch: "armor", echelon: "II" },
             { id: "u_2", title: "第2主战坦克营", desc: "主战坦克 x 31", color: "#5B8FF9", branch: "armor", echelon: "II" },
@@ -1095,7 +1091,7 @@
         {
           id: "col_2",
           title: "机步营部与分队",
-          type: "commander", // 【形态一：主官领队型 (图 2)】
+          type: "commander", // 【形态一：主官领队型】
           units: [
             { id: "u_4", title: "第1机械化步兵营", desc: "履带步战车 x 31", color: "#5B8FF9", branch: "infantry", mobility: "tracked", echelon: "II" },
             { id: "u_5", title: "第2机械化步兵营", desc: "履带步战车 x 31", color: "#5B8FF9", branch: "infantry", mobility: "tracked", echelon: "II" }
@@ -1104,7 +1100,7 @@
         {
           id: "col_3",
           title: "炮兵营部与分队",
-          type: "commander", // 【形态一：主官领队型 (图 2)】
+          type: "commander", // 【形态一：主官领队型】
           units: [
             { id: "u_6", title: "第1自行加榴炮营", desc: "155mm自行火炮 x 18", color: "#5B8FF9", branch: "artillery", mobility: "tracked", echelon: "II" },
             { id: "u_7", title: "第2自行加榴炮营", desc: "155mm自行火炮 x 18", color: "#5B8FF9", branch: "artillery", mobility: "tracked", echelon: "II" }
@@ -1113,7 +1109,7 @@
         {
           id: "col_direct",
           title: "旅直属支援连队",
-          type: "direct", // 【形态二：直属平级顺下列 (图 3 / 图 1 标准)】
+          type: "direct", // 【形态二：直属平级顺下列】
           units: [
             { id: "u_8",  title: "战斗勤务支援营", desc: "旅综合后勤大队", color: "#5B8FF9", branch: "sustainment", echelon: "II" },
             { id: "u_9",  title: "装甲侦察搜索连", desc: "装甲搜索车",     color: "#5B8FF9", branch: "recon", echelon: "I" },
@@ -1149,7 +1145,7 @@
       return "infantry";
     }
 
-    // 核心树排版引擎：彻底消除 S 弯，严格还原左侧笔直贯通垂向母线
+    // 核心树排版引擎（图层隔离：彻底消除腰部弯线，还原左下角直垂母线 + 18px 向右缩进）
     function renderTree() {
       const svg = document.getElementById("orbat-svg");
       const strokeColor = isDark ? "#FFFFFF" : "#000000";
@@ -1161,6 +1157,7 @@
       const BOX_CX = 46;
       const BOX_LEFT_OFFSET = 10;
       const BOX_CY_OFFSET = 46;
+      const SUB_INDENT = 18; // 下属卡片向右统一缩进 18px
 
       const numCols = orbatData.columns.length;
       let colPositions = [];
@@ -1170,7 +1167,7 @@
         colPositions.push({ x, cx: x + BOX_CX });
       }
 
-      // 根节点居于全树中心
+      // 根节点中轴
       let trunkX = LEFT_PAD + CARD_W / 2;
       if (numCols > 0) {
         trunkX = (colPositions[0].cx + colPositions[numCols - 1].cx) / 2;
@@ -1192,17 +1189,17 @@
         hqPos = { x: hqX, y: attachY, cx: hqX + BOX_CX, isLeft };
       }
 
-      // 水平分流主大梁（Crossbar）高度
       const busY = hasHq ? (attachY + 68 + 44) : (rootBottomY + 44);
       const colStartY = busY + 36;
 
-      let svgMarkup = "";
+      let svgUnitsMarkup = "";
       let linesMarkup = "";
+      let selectionMarkup = "";
 
       // A. 主干中轴垂线
       linesMarkup += `<line x1="${trunkX}" y1="${rootBottomY}" x2="${trunkX}" y2="${busY}" stroke="${strokeColor}" stroke-width="2" />`;
 
-      // B. 单一总部侧挂连线
+      // B. HQ 侧挂连线
       if (hasHq) {
         const endY = hqPos.y + getUnitVisualTop(hq) - 7;
         linesMarkup += `
@@ -1219,20 +1216,19 @@
       let maxCanvasX = Math.max(
         rootX + CARD_W,
         hasHq ? (hqPos.x + CARD_W) : rootX + CARD_W,
-        numCols > 0 ? (colPositions[numCols - 1].x + CARD_W) : rootX + CARD_W
+        numCols > 0 ? (colPositions[numCols - 1].x + CARD_W + SUB_INDENT) : rootX + CARD_W
       );
 
-      // C. 遍历渲染各列（消除所有 S 弯，保持母线 100% 垂直贯通）
+      // C. 遍历渲染各列（重构：顶层卡片左下角直垂母线，下级卡片向右缩进 18px）
       orbatData.columns.forEach((col, cIdx) => {
         const colPos = colPositions[cIdx];
         const colType = col.type || "commander";
-        const cardBoxLeft = colPos.x + BOX_LEFT_OFFSET;
-        const busX = cardBoxLeft - 18;
+        const busX = colPos.x + BOX_LEFT_OFFSET; // 垂直母线 X 轴直接锁定在列内标准左边框处
 
         minCanvasX = Math.min(minCanvasX, busX - 10);
 
         if (colType === "commander") {
-          // ==================== 形态一：主官领队型 (图 1 / 图 2 修正版：无任何 S 弯) ====================
+          // ==================== 形态一：主官领队型 (图 2：左下角直垂母线 + 下级卡片右缩进 18px) ====================
           minBusX = Math.min(minBusX, colPos.cx);
           maxBusX = Math.max(maxBusX, colPos.cx);
 
@@ -1244,58 +1240,63 @@
           const u0Top = u0y + getUnitVisualTop(u0);
           linesMarkup += `<line x1="${colPos.cx}" y1="${busY}" x2="${colPos.cx}" y2="${u0Top - 7}" stroke="${strokeColor}" stroke-width="2" />`;
 
-          // 绘制主官卡片
+          // 绘制主官卡片（无缩进，左边框在 busX 处）
           const isU0Sel = selectedRef.type === "column" && selectedRef.colIdx === cIdx && selectedRef.unitIdx === 0;
-          svgMarkup += renderCardGroup(u0, colPos.x, u0y, isU0Sel, `selectNode('column', ${cIdx}, 0)`);
+          svgUnitsMarkup += renderCardUnit(u0, colPos.x, u0y, `selectNode('column', ${cIdx}, 0)`);
+          if (isU0Sel) selectionMarkup += renderSelectionHighlight(u0, colPos.x, u0y);
 
-          // 如果存在后续下属营/连单位
+          // 若存在后续下属营/连单位
           if (col.units.length > 1) {
-            const u0CenterY = u0y + BOX_CY_OFFSET;
+            // 【核心修正】：垂直母线起点严格锁定在主官卡片的左下角 (busX, u0y + 68)！绝无腰部横伸！
+            const u0Bottom = u0y + 68 + (((u0.stacks || 1) - 1) * 5);
             const lastSubY = colStartY + (col.units.length - 1) * (CARD_H + rowGap) + BOX_CY_OFFSET;
 
-            // 主官卡片左侧水平出线直插垂直母线顶端
-            linesMarkup += `<line x1="${busX}" y1="${u0CenterY}" x2="${cardBoxLeft}" y2="${u0CenterY}" stroke="${strokeColor}" stroke-width="2" />`;
+            // 垂直母线自左下角笔直向下直垂到底部
+            linesMarkup += `<line x1="${busX}" y1="${u0Bottom}" x2="${busX}" y2="${lastSubY}" stroke="${strokeColor}" stroke-width="2" />`;
 
-            // 【核心连线修正】：一条从上到下 100% 笔直贯通的垂直母线（无任何 S 弯拐角）
-            linesMarkup += `<line x1="${busX}" y1="${u0CenterY}" x2="${busX}" y2="${lastSubY}" stroke="${strokeColor}" stroke-width="2" />`;
-
-            // 所有后续下级卡片，像梳子一样直接由母线水平向右直插左边框中点
+            // 下属单位统一向右缩进 18px，水平短线从直垂母线直插下属卡片左边框中点
             for (let uIdx = 1; uIdx < col.units.length; uIdx++) {
               const unit = col.units[uIdx];
               const uy = colStartY + uIdx * (CARD_H + rowGap);
               maxCanvasY = Math.max(maxCanvasY, uy + CARD_H + 40);
 
+              const subX = colPos.x + SUB_INDENT;
+              const subBoxLeft = subX + BOX_LEFT_OFFSET; // busX + 18
               const cardCenterY = uy + BOX_CY_OFFSET;
 
-              // 水平支线直插卡片左边框中点
-              linesMarkup += `<line x1="${busX}" y1="${cardCenterY}" x2="${cardBoxLeft}" y2="${cardCenterY}" stroke="${strokeColor}" stroke-width="2" />`;
+              // 短水平横线从母线向右引出：从 busX 直达 busX + 18
+              linesMarkup += `<line x1="${busX}" y1="${cardCenterY}" x2="${subBoxLeft}" y2="${cardCenterY}" stroke="${strokeColor}" stroke-width="2" />`;
 
               const isSel = selectedRef.type === "column" && selectedRef.colIdx === cIdx && selectedRef.unitIdx === uIdx;
-              svgMarkup += renderCardGroup(unit, colPos.x, uy, isSel, `selectNode('column', ${cIdx}, ${uIdx})`);
+              svgUnitsMarkup += renderCardUnit(unit, subX, uy, `selectNode('column', ${cIdx}, ${uIdx})`);
+              if (isSel) selectionMarkup += renderSelectionHighlight(unit, subX, uy);
             }
           }
 
         } else {
-          // ==================== 形态二：直属平级顺下列 (图 1 / 图 3 标准梳状) ====================
+          // ==================== 形态二：直属平级顺下列 (母线自大梁直垂 + 全员右缩进 18px) ====================
           minBusX = Math.min(minBusX, busX);
           maxBusX = Math.max(maxBusX, busX);
 
           const lastCardCenterY = colStartY + (col.units.length - 1) * (CARD_H + rowGap) + BOX_CY_OFFSET;
 
-          // 大梁 90° 直角下弯形成的整根笔直垂直母线
+          // 大梁直角下弯形成的垂直母线
           linesMarkup += `<line x1="${busX}" y1="${busY}" x2="${busX}" y2="${lastCardCenterY}" stroke="${strokeColor}" stroke-width="2" />`;
 
           col.units.forEach((unit, uIdx) => {
             const uy = colStartY + uIdx * (CARD_H + rowGap);
             maxCanvasY = Math.max(maxCanvasY, uy + CARD_H + 40);
 
+            const subX = colPos.x + SUB_INDENT;
+            const subBoxLeft = subX + BOX_LEFT_OFFSET;
             const cardCenterY = uy + BOX_CY_OFFSET;
 
-            // 所有下级单位完全平级，均从左侧垂直母线水平伸出支线直插左边框中点
-            linesMarkup += `<line x1="${busX}" y1="${cardCenterY}" x2="${cardBoxLeft}" y2="${cardCenterY}" stroke="${strokeColor}" stroke-width="2" />`;
+            // 水平短支线自垂直母线向右引出
+            linesMarkup += `<line x1="${busX}" y1="${cardCenterY}" x2="${subBoxLeft}" y2="${cardCenterY}" stroke="${strokeColor}" stroke-width="2" />`;
 
             const isSel = selectedRef.type === "column" && selectedRef.colIdx === cIdx && selectedRef.unitIdx === uIdx;
-            svgMarkup += renderCardGroup(unit, colPos.x, uy, isSel, `selectNode('column', ${cIdx}, ${uIdx})`);
+            svgUnitsMarkup += renderCardUnit(unit, subX, uy, `selectNode('column', ${cIdx}, ${uIdx})`);
+            if (isSel) selectionMarkup += renderSelectionHighlight(unit, subX, uy);
           });
         }
       });
@@ -1307,12 +1308,14 @@
 
       // 根节点
       const isRootSel = selectedRef.type === "root";
-      svgMarkup += renderCardGroup(orbatData.root, rootX, rootY, isRootSel, `selectNode('root')`);
+      svgUnitsMarkup += renderCardUnit(orbatData.root, rootX, rootY, `selectNode('root')`);
+      if (isRootSel) selectionMarkup += renderSelectionHighlight(orbatData.root, rootX, rootY);
 
       // HQ 侧挂节点
       if (hasHq) {
         const isHqSel = selectedRef.type === "hqAttachment";
-        svgMarkup += renderCardGroup(hq, hqPos.x, hqPos.y, isHqSel, `selectNode('hqAttachment')`);
+        svgUnitsMarkup += renderCardUnit(hq, hqPos.x, hqPos.y, `selectNode('hqAttachment')`);
+        if (isHqSel) selectionMarkup += renderSelectionHighlight(hq, hqPos.x, hqPos.y);
       }
 
       const totalW = Math.max(maxCanvasX + 100, 1150);
@@ -1321,28 +1324,40 @@
       svg.setAttribute("width", totalW.toString());
       svg.setAttribute("height", totalH.toString());
       svg.setAttribute("viewBox", `0 0 ${totalW} ${totalH}`);
-      svg.innerHTML = `<g id="scene-root">${linesMarkup}${svgMarkup}</g>`;
+
+      // 图层隔离
+      svg.innerHTML = `
+        <g id="scene-root">
+          <g id="layer-content">
+            <g id="layer-connections">${linesMarkup}</g>
+            <g id="layer-units">${svgUnitsMarkup}</g>
+          </g>
+          <g id="layer-ui-selection">${selectionMarkup}</g>
+        </g>
+      `;
 
       applyTransform();
       renderOutlineTree();
       updateInspector();
     }
 
-    function renderCardGroup(unit, x, y, isSelected, onClickStr) {
-      const activeColor = isDark ? "#38bdf8" : "#2563eb";
-      const selStroke = isSelected 
-        ? `<rect class="node-hover-box" x="-4" y="0" width="${270 + ((unit.stacks||1)-1)*5 + 8}" height="76" fill="none" stroke="${activeColor}" stroke-width="2" stroke-dasharray="3,3" rx="4" />` 
-        : `<rect class="node-hover-box" x="-4" y="0" width="${270 + ((unit.stacks||1)-1)*5 + 8}" height="76" fill="transparent" stroke="transparent" stroke-width="1.5" rx="4" />`;
-      
+    function renderCardUnit(unit, x, y, onClickStr) {
       return `
         <g class="clickable-node" transform="translate(${x}, ${y})" onclick="${onClickStr}">
-          ${selStroke}
           ${renderNATOUnit(unit)}
         </g>
       `;
     }
 
-    // 渲染大纲树导航
+    function renderSelectionHighlight(unit, x, y) {
+      const activeColor = isDark ? "#38bdf8" : "#2563eb";
+      return `
+        <g transform="translate(${x}, ${y})" pointer-events="none">
+          <rect class="node-hover-box" x="-4" y="0" width="${270 + ((unit.stacks||1)-1)*5 + 8}" height="76" fill="none" stroke="${activeColor}" stroke-width="2" stroke-dasharray="4,4" rx="4" />
+        </g>
+      `;
+    }
+
     function renderOutlineTree() {
       const container = document.getElementById("outline-tree");
       let html = "";
@@ -1405,12 +1420,10 @@
       container.innerHTML = html;
     }
 
-    // 选中节点（同时支持全端自适应切换）
     function selectNode(type, colIdx = null, unitIdx = null) {
       selectedRef = { type, colIdx, unitIdx };
       renderTree();
 
-      // 手机端关键联动：点击画布兵牌自动切入属性检查器
       if (window.innerWidth <= 900) {
         switchMobileTab('inspector');
       }
@@ -1525,7 +1538,6 @@
       updateCurrentNode("color", hex);
     }
 
-    // 初始化图 3 风格多梯次战术色板
     function initTacticalMatrixPalette() {
       const container = document.getElementById("tactical-palette-grid");
       container.innerHTML = TACTICAL_MATRIX_COLORS.map(color => `
@@ -1533,7 +1545,6 @@
       `).join("");
     }
 
-    // 列形态切换
     function toggleColType(cIdx) {
       const col = orbatData.columns[cIdx];
       col.type = (col.type === "direct") ? "commander" : "direct";
@@ -1547,7 +1558,6 @@
       }
     }
 
-    // 增删改查
     function addNewColumn() {
       const newColId = "col_" + Date.now();
       orbatData.columns.push({
@@ -1650,7 +1660,6 @@
       }
     }
 
-    // 手机端 Tab 切换逻辑
     function switchMobileTab(tab) {
       document.body.classList.remove('mobile-tab-outline', 'mobile-tab-inspector');
       document.body.classList.add(`mobile-tab-${tab}`);
@@ -1658,7 +1667,6 @@
       document.getElementById('btn-tab-inspector').classList.toggle('active', tab === 'inspector');
     }
 
-    // 画布缩放与平移 (兼容鼠标与触控)
     function applyTransform() {
       const svg = document.getElementById("orbat-svg");
       svg.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomScale})`;
@@ -1679,8 +1687,18 @@
     function fitToScreen() {
       const svg = document.getElementById("orbat-svg");
       const container = document.getElementById("canvas-container");
-      const w = parseFloat(svg.getAttribute("width")) || 1200;
-      const h = parseFloat(svg.getAttribute("height")) || 800;
+      const contentLayer = document.getElementById("layer-content");
+
+      let w = 1200, h = 800;
+      if (contentLayer) {
+        try {
+          const bbox = contentLayer.getBBox();
+          if (bbox.width > 0 && bbox.height > 0) {
+            w = bbox.x + bbox.width + 40;
+            h = bbox.y + bbox.height + 40;
+          }
+        } catch(e){}
+      }
 
       const availW = container.clientWidth - 40;
       const availH = container.clientHeight - 40;
@@ -1693,7 +1711,7 @@
       applyTransform();
     }
 
-    // 鼠标与单指触控平移支持
+    // 触控与鼠标平移支持
     const canvasContainer = document.getElementById("canvas-container");
 
     function handleStart(clientX, clientY, target) {
@@ -1708,26 +1726,18 @@
       panY = clientY - startMouseY;
       applyTransform();
     }
-    function handleEnd() {
-      isPanning = false;
-    }
+    function handleEnd() { isPanning = false; }
 
     canvasContainer.addEventListener("mousedown", (e) => handleStart(e.clientX, e.clientY, e.target));
     window.addEventListener("mousemove", (e) => handleMove(e.clientX, e.clientY));
     window.addEventListener("mouseup", handleEnd);
 
     canvasContainer.addEventListener("touchstart", (e) => {
-      if (e.touches.length === 1) {
-        handleStart(e.touches[0].clientX, e.touches[0].clientY, e.target);
-      }
+      if (e.touches.length === 1) handleStart(e.touches[0].clientX, e.touches[0].clientY, e.target);
     }, { passive: true });
-
     window.addEventListener("touchmove", (e) => {
-      if (e.touches.length === 1) {
-        handleMove(e.touches[0].clientX, e.touches[0].clientY);
-      }
+      if (e.touches.length === 1) handleMove(e.touches[0].clientX, e.touches[0].clientY);
     }, { passive: true });
-
     window.addEventListener("touchend", handleEnd);
 
     canvasContainer.addEventListener("wheel", (e) => {
@@ -1747,14 +1757,61 @@
       return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
 
-    // 导出 SVG
-    function exportSVG() {
+    // ==================== 核心导出引擎：消除高亮边框 + 紧凑自适应裁切 ====================
+    function getCroppedExportSVG() {
       const svg = document.getElementById("orbat-svg");
+      const contentLayer = document.getElementById("layer-content");
+
+      // 1. 调用 getBBox() 获得纯净战术内容包围盒（彻底排除高亮框）
+      let bbox;
+      try {
+        bbox = contentLayer ? contentLayer.getBBox() : svg.getBBox();
+      } catch (e) {
+        bbox = null;
+      }
+
+      const padding = 40; // 紧凑 40px 呼吸边距
+      let cropX, cropY, cropW, cropH;
+
+      if (bbox && bbox.width > 0 && bbox.height > 0) {
+        cropX = Math.floor(bbox.x - padding);
+        cropY = Math.floor(bbox.y - padding);
+        cropW = Math.ceil(bbox.width + padding * 2);
+        cropH = Math.ceil(bbox.height + padding * 2);
+      } else {
+        cropX = 0;
+        cropY = 0;
+        cropW = parseFloat(svg.getAttribute("width")) || 1200;
+        cropH = parseFloat(svg.getAttribute("height")) || 800;
+      }
+
+      // 2. 克隆 SVG DOM
       const clone = svg.cloneNode(true);
+
+      // 3. 彻底删除克隆体内的 UI 选中高亮层
+      const selLayer = clone.querySelector("#layer-ui-selection");
+      if (selLayer) selLayer.remove();
+      clone.querySelectorAll(".node-hover-box").forEach(el => el.remove());
+
+      // 4. 重置样式与精确设定紧凑 ViewBox
       clone.style.transform = "";
+      clone.setAttribute("width", cropW.toString());
+      clone.setAttribute("height", cropH.toString());
+      clone.setAttribute("viewBox", `${cropX} ${cropY} ${cropW} ${cropH}`);
+
+      if (!clone.getAttribute("xmlns")) {
+        clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      }
+
+      return { clone, cropW, cropH };
+    }
+
+    // 导出纯净矢量 SVG
+    function exportSVG() {
+      const { clone } = getCroppedExportSVG();
       const serializer = new XMLSerializer();
       let source = serializer.serializeToString(clone);
-      if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
+      if (!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)) {
         source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
       }
       const blob = new Blob([source], { type: "image/svg+xml;charset=utf-8" });
@@ -1765,23 +1822,19 @@
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
 
-    // 导出 PNG
-    function exportPNG() {
-      const svg = document.getElementById("orbat-svg");
-      const w = parseFloat(svg.getAttribute("width")) || 1200;
-      const h = parseFloat(svg.getAttribute("height")) || 800;
-
-      const clone = svg.cloneNode(true);
-      clone.style.transform = "";
+    // 导出 2x 超清 PNG（支持透明底板或纯色底板）
+    function exportPNG(isTransparent = false) {
+      const { clone, cropW, cropH } = getCroppedExportSVG();
       const serializer = new XMLSerializer();
       const svgStr = serializer.serializeToString(clone);
 
       const canvas = document.createElement("canvas");
-      const scale = 2; // 2x 超清输出
-      canvas.width = w * scale;
-      canvas.height = h * scale;
+      const scale = 2; // 2x 超清渲染
+      canvas.width = cropW * scale;
+      canvas.height = cropH * scale;
       const ctx = canvas.getContext("2d");
 
       const img = new Image();
@@ -1789,13 +1842,17 @@
       const url = URL.createObjectURL(svgBlob);
 
       img.onload = function() {
-        ctx.fillStyle = isDark ? "#090D16" : "#F8FAFC";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if (!isTransparent) {
+          ctx.fillStyle = isDark ? "#090D16" : "#F8FAFC";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         URL.revokeObjectURL(url);
 
         const a = document.createElement("a");
-        a.download = "nato_orbat_chart_2x.png";
+        a.download = isTransparent ? "nato_orbat_transparent_2x.png" : "nato_orbat_chart_2x.png";
         a.href = canvas.toDataURL("image/png");
         document.body.appendChild(a);
         a.click();
